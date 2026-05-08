@@ -952,7 +952,7 @@ mcmc_list_to_draws <- function(samples) {
 
   # safer as tibble/data.frame; preserve numeric columns
   draws <- as.data.frame(draws, check.names = FALSE)
-  tibble::as_tibble(draws)
+  draws
 }
 
 # compute sigma values for each pair of columns in df, MCMC diagnostic helper

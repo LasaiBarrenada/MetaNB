@@ -10,7 +10,7 @@ compute_voi_metrics <- function(x,
   draws <- if (inherits(x, "mcmc.list")) {
     mcmc_list_to_draws(x)
   } else if (is.data.frame(x)) {
-    tibble::as_tibble(x)
+    x
   } else {
     stop("`x` must be an mcmc.list or a data.frame of draws.", call. = FALSE)
   }

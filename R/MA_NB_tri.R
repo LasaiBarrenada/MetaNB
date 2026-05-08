@@ -368,7 +368,8 @@ MA_NB_tri <- function(data,
       "ENBnew", "ENBnew_TA",
       "prevnew",
       "pooledNB", "pooledNB_TA",
-      "probuseful"
+      "probuseful",
+      "NB_TA"
     )
     return_vars <- unique(c(return_vars, voi_nodes))
   }

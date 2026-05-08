@@ -380,7 +380,6 @@ MA_NB_tri <- function(data,
 
   # ---- optional: center-specific EVPI for selected existing study rows ----
   center_meta  <- NULL
-  center_nodes <- character(0)
 
   if (compute_EVPI && !is.null(center_rows)) {
     # validation (copied from sample_voi_draws)
@@ -393,12 +392,6 @@ MA_NB_tri <- function(data,
       stop("`center_rows` contains values out of range. Valid rows are 1 to ",
            n_study, ".", call. = FALSE)
 
-    # monitor existing per-study NB nodes for the selected center rows
-    center_nodes <- unlist(lapply(center_rows, function(cr)
-      c(sprintf("NB[%d]", cr), sprintf("NB_TA[%d]", cr))
-    ))
-
-    return_vars <- unique(c(return_vars, center_nodes))
 
     # store a human-readable label so output is self-documenting
     keep_cols <- intersect(center_label_cols, names(data))

@@ -47,17 +47,18 @@ compute_voi_metrics <- function(x,
 
   # predictive/new-setting difference is always available from NBnew/NBnew_TA
   d_new <- NBnew - NBnew_TA
+  diff_new_mean <- mean(d_new)
   diff_new_low  <- stats::quantile(d_new, 0.025, names = FALSE)
   diff_new_high <- stats::quantile(d_new, 0.975, names = FALSE)
 
   diff_modelvsTA_label <- if (is.finite(diff_pooled_mean)) {
     sprintf(
-      "Pooled (mean [2.5%%, 97.5%%]): %.3f [%.3f, %.3f]; New ([2.5%%, 97.5%%]): [%.3f, %.3f]",
+      "Pooled (mean [2.5%%, 97.5%%]): %.3f [%.3f, %.3f]; New (mean [2.5%%, 97.5%%]): %.3f [%.3f, %.3f]",
       diff_pooled_mean, diff_pooled_low, diff_pooled_high,
-      diff_new_low, diff_new_high
+      diff_new_mean, diff_new_low, diff_new_high
     )
   } else {
-    sprintf("New ([2.5%%, 97.5%%]): [%.3f, %.3f]", diff_new_low, diff_new_high)
+    sprintf("New (mean [2.5%%, 97.5%%]): %.3f [%.3f, %.3f]", diff_new_mean, diff_new_low, diff_new_high)
   }
 
   # ---- determine winner strategy under current information ----

@@ -950,15 +950,6 @@ mcmc_list_to_draws <- function(samples) {
   mats <- lapply(samples, as.matrix)
   draws <- do.call(rbind, mats)
 
-  # deduplicate columns defensively before coercing to data frame
-  # This is needed because expand_target in MA_NB_tri() expands to per-study NB[]s, but center_rows() also requests specific per-study NB[]s
-  dups <- colnames(draws)[duplicated(colnames(draws))]
-  if (length(dups) > 0) {
-    message("Removing duplicate columns from mcmc matrix: ",
-            paste(unique(dups), collapse = ", "))
-    draws <- draws[, !duplicated(colnames(draws)), drop = FALSE]
-  }
-
   # safer as tibble/data.frame; preserve numeric columns
   draws <- as.data.frame(draws, check.names = FALSE)
   tibble::as_tibble(draws)

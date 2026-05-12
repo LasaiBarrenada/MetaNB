@@ -80,7 +80,7 @@ compute_voi_metrics <- function(x,
   NB_cluster_pi <- mean(tmp_cluster)
   EVPI_cluster  <- max(0, NB_cluster_pi - NB_current) # protection against negative EVPI due to MC jitter
 
-  # ---- population perfect info (if available) ----
+  # ---- population perfect info ----
   has_pop <- all(c("ENBnew", "ENBnew_TA") %in% names(draws))
   if (has_pop) {
     ENBnew    <- draws$ENBnew

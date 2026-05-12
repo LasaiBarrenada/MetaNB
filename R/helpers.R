@@ -549,7 +549,7 @@ build_per_study_display <- function(
     metric,
     per,
     data,
-    center = c("Median", "Mean"),
+    center = c("Mean", "Median"),
     t = NULL,
 
     reported_est_col = NULL,

@@ -196,7 +196,7 @@ plot_forest <- function(
   center <- match.arg(center)
 
   if (center_missing) {
-    message("Using center = '", center, "' (default). Set center = 'Mean' if desired.")
+    message("Using center = '", center, "' (default). Set center = 'Median' if desired.")
   } else {
     message("Using center = '", center, "'.")
   }

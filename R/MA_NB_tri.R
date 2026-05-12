@@ -3,9 +3,11 @@
 #' @description
 #' Fits a Bayesian trivariate random-effects meta-analysis model jointly
 #' modelling sensitivity, specificity, and prevalence across studies using
-#' study-level data. Returns posterior MCMC samples for Net Benefit (NB),
-#' Relative Utility (RU), and related clinical utility metrics at a
-#' user-specified decision threshold. When `compute_EVPI = TRUE`,
+#' study-level count data. Returns posterior MCMC samples for Net Benefit (NB),
+#' Relative Utility (RU), sensitivity, specificity and related clinical utility metrics at a
+#' user-specified decision threshold.
+#'
+#' When `compute_EVPI = TRUE`,
 #' also computes Value of Information (VOI) metrics including the Expected
 #' Value of Perfect Information (EVPI) and optionally the Expected Value of
 #' Partial Perfect Information (EVPPI) for prevalence, with optional

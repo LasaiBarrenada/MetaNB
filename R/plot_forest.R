@@ -48,9 +48,9 @@
 #'   reported upper interval bounds.
 #' @param interval_fallback Optional character string specifying the fallback
 #'   interval method for studies lacking reported intervals. If `NULL`,
-#'   defaults are chosen by metric: `"frequentist"` (Wilson's method via
-#'   the `madad` function in the pacakge \pkg{mada}) for sensitivity and
-#'   specificity, `"analytic"` for NB,
+#'   defaults are chosen by metric: `"frequentist"` for NB (Sande et al. 2020), and also `"frequentist"`
+#'   for sensitivity and specificity (Wilson's method via
+#'   the `madad` function in the pacakge \pkg{mada}),
 #'   and `"model"` (posterior CrI) for RU.
 #' @param mark_imputed Logical. If `TRUE`, per-study rows where the
 #'   displayed point estimate or interval was not taken directly from reported
@@ -187,8 +187,8 @@ plot_forest <- function(
   }
   if (metric == "NB" && is.null(t) &&
       (is.null(reported_est_col) || is.null(reported_low_col) || is.null(reported_high_col) ||
-       identical(interval_fallback, "analytic"))) {
-    message("`t` is required for observed-study NB calculations or analytical NB CI fallback.")
+       identical(interval_fallback, "frequentist"))) {
+    message("`t` is required for observed-study NB calculations or frequentist NB CI fallback.")
   }
 
 
@@ -196,7 +196,7 @@ plot_forest <- function(
   center <- match.arg(center)
 
   if (center_missing) {
-    message("Using center = '", center, "' (default). Set center = 'Median' if desired.")
+    message("Using center = '", center, "' (default), so posterior means are displayed as the central estimates in the forest plot. Set center = 'Median' to use posterior median instead.")
   } else {
     message("Using center = '", center, "'.")
   }
@@ -261,7 +261,7 @@ plot_forest <- function(
       metric,
       sens = "frequentist",
       spec = "frequentist",
-      NB   = "analytic",
+      NB   = "frequentist",
       RU   = "model",
       "none"
     )

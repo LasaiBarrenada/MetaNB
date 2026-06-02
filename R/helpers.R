@@ -556,7 +556,7 @@ build_per_study_display <- function(
     reported_low_col = NULL,
     reported_high_col = NULL,
 
-    interval_fallback = c("none", "frequentist", "analytic", "model")
+    interval_fallback = c("none", "frequentist", "model")
 ) {
   center <- match.arg(center)
   interval_fallback <- match.arg(interval_fallback)
@@ -671,10 +671,10 @@ build_per_study_display <- function(
       }
     }
 
-    # NB analytical fallback
-    if (metric == "NB" && interval_fallback == "analytic") {
+    # NB frequentist fallback
+    if (metric == "NB" && interval_fallback == "frequentist") {
       if (is.null(t)) {
-        stop("`t` must be supplied when using analytical CI fallback for NB.",
+        stop("`t` must be supplied when using frequentist CI fallback for NB.",
              call. = FALSE)
       }
 
@@ -689,7 +689,7 @@ build_per_study_display <- function(
 
         display_low[need_ci]  <- nb_ci$low[need_ci]
         display_high[need_ci] <- nb_ci$high[need_ci]
-        interval_source[need_ci] <- "analytic"
+        interval_source[need_ci] <- "frequentist"
       }
     }
 
@@ -761,12 +761,12 @@ emit_forest_messages <- function(metric, point_source, interval_source,
     point_text <- NULL
 
     if (setequal(point_nonrep, "observed")) {
-      point_text <- "study-level observed or calculated values"
+      point_text <- "study-level calculated values"
     } else if (setequal(point_nonrep, "model")) {
       point_text <- "Bayesian trivariate model-based values"
     } else if (setequal(point_nonrep, c("observed", "model"))) {
       point_text <- paste(
-        "study-level observed or calculated values,",
+        "study-level calculated values,",
         "or Bayesian trivariate model-based values"
       )
     }
@@ -788,9 +788,13 @@ emit_forest_messages <- function(metric, point_source, interval_source,
     interval_text <- NULL
 
     if (setequal(int_nonrep, "frequentist")) {
-      interval_text <- "confidence interval fallback based on Wilson's method"
-    } else if (setequal(int_nonrep, "analytic")) {
-      interval_text <- "analytical confidence interval fallback"
+      if (metric == "NB") {
+        interval_text <- "frequentist confidence interval fallback"
+      } else if (metric %in% c("sens", "spec")) {
+        interval_text <- "frequentist confidence interval fallback based on Wilson's method"
+      } else {
+        interval_text <- "frequentist interval fallback"
+      }
     } else if (setequal(int_nonrep, "model")) {
       interval_text <- "model-based credible interval fallback from the Bayesian trivariate meta-analysis"
     } else {

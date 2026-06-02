@@ -27,18 +27,40 @@ overflow-y: scroll;
 
 # Introduction
 
-This vignette provides a step-by-step introduction to the MetaNB package, which implements a trivariate random-effects meta-analysis of prevalence, sensitivity, and specificity, along with associated value-of-information (VOI) metrics for quantifying decision uncertainty. The trivariate random-effects meta-analysis is described in detail in [@wynants_random-effects_2018], and the associated VOI framework is described in \[ref placeholder\].
+This vignette provides a step-by-step introduction to the MetaNB package, which implements a trivariate random-effects meta-analysis of prevalence, sensitivity, and specificity<mark>, to indirectly meta-analyze Net Benefit</mark>, along with associated value-of-information (VOI) metrics for quantifying decision uncertainty. The trivariate random-effects meta-analysis is described in detail in [@wynants_random-effects_2018], and the associated VOI framework is described in \[ref placeholder\].
+
+<mark>This vignette demonstrates a typical workflow: importing study-level data, fitting a trivariate meta-analysis model, assessing convergence, summarizing posterior draws, visualizing results with forest plots, and obtaining VOI metrics when decision uncertainty is of interest.
+
+The main input the package takes is a data frame with one row per study or center. At minimum, the model-fitting function requires columns for the number of true positives, true negatives, events, and non-events. Additional columns such as study label, country, and reported point estimates and confidence intervals, can be included and later used for forest plots.
+
+The central function is `MA_NB_tri()`. It fits the Bayesian trivariate random-effects model and returns posterior MCMC samples, together with metadata about the model fitting process and prior settings. Downstream functions then work from those posterior samples. For example, `summarize_tri_ma()` summarizes selected posteriors, and `plot_forest()` visualizes study-specific, pooled, and predictive results.
+
+When `compute_EVPI = TRUE` and other related arguments are supplied, `MA_NB_tri()` also monitors the additional quantities needed for VOI analysis and returns VOI metrics in the same fitted object. This allows the meta-analysis summaries, forest plots, and VOI metrics to be based on the same MCMC run.
+
+</mark>
+
 
 # Example data
-The IOTA-ADNEX is a regression model that distinguishes between benign and several types of malignant adnexal masses [@calster_evaluating_2014]. The dataset used in this vignette is from a systematic review of 37 external validation studies of ADNEX [@barrenada_adnex_2024], in which sensitivity and specificity were meta-analyzed at the commonly used 10% risk of malignancy threshold.
+The IOTA-ADNEX is a regression model that distinguishes between benign and several types of malignant adnexal masses [@van_calster_evaluating_2014]. The dataset used in this vignette is from a systematic review of 37 external validation studies of ADNEX [@barrenada_adnex_2024], in which sensitivity and specificity were meta-analyzed at the commonly used 10% risk of malignancy threshold.
 
-For illustration purposes, we restrict the dataset to studies in which ADNEX was used with CA125, and refer to this subset as data_ADNEXCA125. The dataset is available in the MetaNB package, and is loaded automatically with`library(MetaNB)`. It contains the numbers of true positives and true negatives, numbers of events and non-events, reported sensitivity and specificity with corresponding confidence intervals, as well as study-level characteristics such as publication, country, sample size, and prevalence.
+For illustration purposes, we restrict the dataset to studies in which ADNEX was used with CA125, and refer to this subset as `data_ADNEXCA125`. The dataset is available in the MetaNB package, and is loaded automatically with `library(MetaNB)`. It contains the numbers of true positives and true negatives, numbers of events and non-events, reported sensitivity and specificity with corresponding confidence intervals, as well as study-level characteristics such as publication, country, sample size, and prevalence.
 
-We use this dataset to illustrate the workflow of running the trivariate meta-analysis, checking convergence, summarizing results, and creating forest plots. We also discuss the extension to value of information analysis, and briefly compare results obtained using different priors.
+<mark>Throughout this vignette, we use `data_ADNEXCA125` as a running example to illustrate the package functionality.</mark>
 
 # Fit the trivariate random-effects meta-analysis
 
 ## Basic fit without VOI
+```{r eval=FALSE}
+# download the package from GitHub
+remotes::install_github("zhipeiwang/MetaNB")
+
+# load the package
+library(MetaNB)
+
+# load other packages
+library(dplyr)
+library(coda)
+```
 
 ```{r include=FALSE}
 # remotes::install_github("zhipeiwang/MetaNB")
@@ -70,9 +92,9 @@ fmt_int <- function(x) {
 
 `MA_NB_tri()` fits the Bayesian trivariate random-effects model for prevalence, sensitivity, and specificity described in [@wynants_random-effects_2018]. It takes the number of true positives (`tp`), true negatives (`tn`), the number of events (`n_event`) and the number of non-events (`n_nonevent`) as input. A threshold (`t`) for which true positives and true negatives are defined is also needed to compute the net benefit and related metrics.
 
-By default, the model is fitted using weak realistic priors (`prior_type = "weak"`) under the product-normal parameterization using priors specified in [@wynants_random-effects_2018]. For most applications, the default prior settings can safely be used and do not require adjustment. The section on "Weak realistic priors (advanced options)" below provides more details on the implementation of the weak realistic priors and how to modify them if needed.
+By default, the model is fitted using weak realistic priors (`prior_type = "weak"`) under the product-normal parameterization using priors specified in [@wynants_random-effects_2018]. For most applications, the default prior settings can safely be used and do not require adjustment. The section on "Weak realistic priors (advanced options)" below provides more details on the implementation of the weak realistic priors and how to modify them if needed. <mark>It is generally recommended to compare results with different prior specifications to assess sensitivity to the choice of prior.</mark>
 
-The argument `return_vars` controls which parameters are returned. By default, we return the family of net benefit (`NB`) related quantities (pooledNB, pooledNB_TA, NBnew etc.) and the posterior probability of clinical usefulness (probuseful). Additional quantities can be requested if needed (see ?MA_NB_tri for details).
+The argument `return_vars` controls which parameters are returned. By default, <mark>net benefit related quantities and the posterior probability of clinical usefulness are returned.</mark> Additional quantities can be requested if needed (see ?MA_NB_tri for details).
 
 The argument `seed` can be set for reproducibility so we get the same results when we run the same code multiple times and when others run the same code. This `seed` argument sets the RNG seed for each JAGS chain, and the argument `rng_name` can be used to specify the type of random number generator (RNG) used in JAGS. By default, we use the "base::Wichmann-Hill" RNG, which is a commonly used RNG in JAGS.
 
@@ -82,8 +104,10 @@ MA_NB_tri(data = data_ADNEXCA125, # data frame containing the data
           tp = tp, tn = tn, n_event = n_event, n_nonevent = n_nonevent, # column names in the data frame for the input data
           prior_type = "weak", # type of prior to use, either "weak" or "wishart"
           t = 0.1, # threshold for defining true positives and true negatives
-          return_vars = c("NB", "RU", "probuseful", "sens", "spec"), # variables to return in the output
-          seed = 123 # random seed for reproducibility
+          return_vars = c("NB", "RU", "probuseful", "sens", "spec"), # we additionally request relative utility (RU), sensitivity (sens), and specificity (spec) because these quantities will be used later in the vignette
+          seed = 123, # random seed for reproducibility
+          prev_known = 0.5, # this is to calculate conditional estimates of net benefit assuming a known prevalence
+          return_known = TRUE # return the conditional estimates of net benefit assuming a known prevalence
           )
 ```
 
@@ -97,7 +121,9 @@ MA_NB_tri(data = data_ADNEXCA125, # data frame containing the data
           prior_type = "weak", # type of prior to use, either "weak" or "wishart"
           t = 0.1, # threshold for defining true positives and true negatives
           return_vars = c("NB", "RU", "probuseful", "sens", "spec"), # variables to return in the output
-          seed = 123 # random seed for reproducibility
+          seed = 123, # random seed for reproducibility
+          prev_known = 0.5, # this is to calculate conditional estimates of net benefit assuming a known prevalence
+          return_known = TRUE # return the conditional estimates of net benefit assuming a known prevalence
           )
 ```
 
@@ -108,7 +134,7 @@ MA_NB_tri(data = data_ADNEXCA125, # data frame containing the data
 
 ## Fit with VOI enabled
 
-To obtain value-of-information (VOI) metrics such as the expected value of perfect information (EVPI), we can run the following code with the same function, but with some additional arguments to enable the VOI calculations. We will elaborate more on this when we discuss the VOI analysis in more detail later in the vignette. For now, the main point is that we can obtain VOI metrics as part of the same model fitting process, without needing to run a separate function or workflow, and we should use the same fitted object throughout once we've decided to include the calculation of VOI metrics, because the VOI metrics should be based on the same MCMC sampling process and same posterior samples as the other quantities of interest.
+To obtain value-of-information (VOI) metrics such as the expected value of perfect information (EVPI), we can run the following code with the same function, but with some additional arguments to enable the VOI calculations. We will elaborate more on this when we discuss the VOI analysis in more detail later in the vignette. For now, the main point is that we can obtain VOI metrics as part of the same model fitting process, without needing to run a separate function or workflow, and we should use the same fitted object throughout once we've decided to include the calculation of VOI metrics, because the VOI metrics <mark>are ideally</mark> based on the same MCMC sampling process and same posterior samples as the other quantities of interest.
 ```{r eval=FALSE}
 # fit with VOI enabled
 
@@ -120,6 +146,8 @@ fit_voi <- MA_NB_tri(data = data_ADNEXCA125,
                      seed = 123,
                      prev_known = 0.5,
                      return_known = TRUE,
+                     
+                     # VOI specific arguments
                      compute_EVPI = TRUE, # enable the computation of VOI quantities
                      auto_resample = FALSE, # whether to automatically draw additional samples until diagnostics indicate that the EVPI estimates are stable
                      center_rows = 1:37, # which rows (centers) to calculate the center-specific EVPI calculation
@@ -154,19 +182,19 @@ fit_voi <- MA_NB_tri(data = data_ADNEXCA125,
 
 Here we briefly describes how the weak realistic priors are implemented in MetaNB. This is mainly relevant if we wish to modify hyperparameters or conduct prior sensitivity analyses. More details can be seen in @wynants_random-effects_2018.
 
-In our implementation, the logit prevalence is controlled by `etap`, and the logit sensitivity and specificity are defined through relationships that depend on prevalence:
+<mark>In our implementation, the logit prevalence is controlled by `etap`, the summary logit prevalence. The logit sensitivity and specificity are defined through relationships that depend on prevalence:
 
--   `etap` is the logit prevalence (prior: `etap ~ dnorm(mu_etap, tau_etap)`).
+-   `etap` is the summary logit prevalence (prior: `etap ~ dnorm(mu_etap, tau_etap)`).
 
--   `lambdasens0` and `lambdasens1` define the logit sensitivity as `lambdasens0 + lambdasens1 * logitp`.
+-   `lambdasens0` and `lambdasens1` define the summary logit sensitivity (`mean.sens`) as `lambdasens0 + lambdasens1 * etap`.
 
--   `lambdaspec0`, `lambdaspec1`, and `lambdaspec2` define the logit specificity as `lambdaspec0 + lambdaspec1 * logitp + lambdaspec2 * logitsens`.
+-   `lambdaspec0`, `lambdaspec1`, and `lambdaspec2` define the summary logit specificity as `lambdaspec0 + lambdaspec1 * etap + lambdaspec2 * mean.sens`.
 
-Between-study heterogeneity is represented through variance parameters for prevalence, sensitivity, and specificity (`varprev`, `varsens`, `varspec`), with half-normal priors. Correlations among the three outcomes are represented by `corr.sens.spec`, `corr.spec.prev`, and `corr.sens.prev`. In our specification, two correlations (correlations between logit sensitivity and logit specificity, and between logit specificity and logit prevalence) use Fisher-z normal priors (`zss`, `zsp`) and one correlation uses a uniform prior (`corr.sens.prev ~ dunif(a_csp, b_csp)`).
+Between-study heterogeneity is represented through variance parameters for prevalence, sensitivity, and specificity (`varprev`, `varsens`, `varspec`), with half-normal priors. Correlations among the three outcomes are represented by `corr.sens.spec`, `corr.spec.prev`, and `corr.sens.prev`. In our specification, two correlations (correlations between logit sensitivity and logit specificity, and between logit specificity and logit prevalence) use Fisher-z normal priors (`zss`, `zsp`) and one correlation uses a uniform prior (`corr.sens.prev ~ dunif(a_csp, b_csp)`). Visualizations of those priors can be found in Figure A1, the Appendix from @wynants_random-effects_2018.</mark>
 
 We can override any subset of these hyperparameters using `weak_priors = list(...)`. Any values not supplied remain at their defaults, which makes it straightforward to run prior sensitivity analyses.
 
-For example, to change only the prior mean for `etap` (the logit prevalence), we can supply:
+For example, to change only the prior mean for `etap` (the summary logit prevalence), we can supply:
 
 ```{r eval=FALSE}
 MA_NB_tri(data = data_ADNEXCA125,
@@ -234,9 +262,9 @@ If the chains appear to mix well and fluctuate in a similar range, we typically 
 
 # Summarize posterior draws
 
-After checking that the chains have mixed well, we summarize the posterior distributions of the quantities we care about. The function `summarize_tri_ma()` provides a convenient summary of the fitted trivariate meta-analysis. We pass the `fit` or `fit$samples` to the function, and specify the metrics we want to summarize using the `metrics`. Note, summaries can only be computed for quantities that were sampled and returned by the model fitting function. In practice, this means that the relevant quantities must have been included in `return_vars` when fitting the model.
+After checking that the chains have mixed well <mark>for key parameters</mark>, we summarize the posterior distributions of the quantities we care about. The function `summarize_tri_ma()` provides a convenient summary of the fitted trivariate meta-analysis. We pass the `fit` or `fit$samples` to the function, and specify the metrics we want to summarize using the `metrics`. <mark>By default, `metrics` include `NB` and the quantity `probuseful`.</mark> Note, summaries can only be computed for quantities that were sampled and returned by the model fitting function. In practice, this means that the relevant quantities must have been included in `return_vars` when fitting the model.
 
-In MetaNB, some summary targets are families of related quantities, while others are single nodes from the model. Family metrics such as `NB`, `RU`, `sens`, and `spec` can include pooled summaries, predictive summaries for a new setting, and optionally per-study summaries. In contrast, quantities such as `pooledprev` correspond to a single model node and therefore return only a single posterior summary (mean, median, and 95% credible interval), without predictive or per-study summaries.
+In MetaNB, some summary targets are families of related quantities, while others are single nodes from the model. Family metrics such as `NB`, `RU`, `sens`, and `spec` <mark>include</mark> pooled summaries, predictive summaries for a new setting, and optionally per-study summaries. <mark>For `NB`, its family of summary targets also extend to the net benefit of the default strategies treat-all and treat-none. </mark>In contrast, quantities such as `pooledprev` correspond to a single model node and therefore return only a single posterior summary (mean, median, and 95% credible interval), without predictive or per-study summaries.
 
 To summarize the main pooled and predictive quantities, we can run:
 
@@ -247,8 +275,8 @@ summarize_tri_ma(
   label_cols = c("Publication", "Country", "N", "Prev"),
   metrics = c("NB", "RU", "probuseful", "sens", "spec"),
   per_study_metrics = c("NB", "RU", "sens", "spec"),
-  return_known = FALSE,
-  include_per_study = FALSE)
+  return_known = FALSE, # asks to not return summaries for conditional estimates of net benefit assuming a known prevalence
+  include_per_study = FALSE) # asks to not return per-study estimates
 ```
 
 ```{r echo=FALSE}
@@ -265,13 +293,13 @@ summarize_tri_ma(
 ```
 (More detailed interpretation of those quantities will be provided in the next section along with the forest plot visualization. For now, the main point is to illustrate how to use the `summarize_tri_ma()` function to obtain summaries of the posterior distributions of the quantities of interest.)
 
-This returns a named list with one entry per requested metric. For `NB`, `RU`, `sens`, and `spec`, the output may contain up to three types of summaries: - **pooled**: the meta-analytic summary across studies (posterior mean, median, and 95% credible interval)  (A 95% credible interval means that, given our model and data, there’s a 95% probability that the true net benefit for that study lies within that interval. Unlike a frequentist interval, this has a direct probability interpretation.), - **predictive**: the summary for the posterior predictive distribution of the quantity in a new setting (mean, median, and 95% prediction interval), - **per-study**: study-specific summaries for each study, if requested.
+This returns a named list with one entry per requested metric. For `NB`, `RU`, `sens`, and `spec`, the output may contain up to three types of summaries: - **pooled**: the meta-analytic summary across studies (posterior mean, median, and 95% credible interval)  (A 95% credible interval means that, given our model and data, <mark>there’s a 95% probability that the true net benefit lies within that interval</mark>. Unlike a frequentist interval, this has a direct probability interpretation.), - **predictive**: the summary for the posterior predictive distribution of the quantity in a new setting (mean, median, and 95% prediction interval), - **per-study**: study-specific summaries for each study, if requested.
 
 For example, `NB$pooled` contains the pooled net benefit for the model and the treat-all strategy, while `NB$predictive` contains the mean, median and corresponding prediction intervals for a new unseen setting. Similarly, `RU`, `sens`, and `spec` return pooled and predictive summaries, and may also include per-study summaries when requested. The quantity `probuseful` is different in that it returns a single posterior probability, stored in `$probuseful$value`.
 
 If we are only interested in the pooled and predictive summaries, we can keep `include_per_study = FALSE`, as in the example above. If we want study-specific summaries, we can request them by setting `include_per_study = TRUE` (which is the default) and specifying which metrics to include per-study estimates for via `per_study_metrics`.
 
-The first few columns of the per-study summary data frame correspond to study labels specified in `label_cols`, and the remaining columns are the summary statistics for the per-study estimates of `NB` (mean, median, 95% credible interval lower and higher bounds). We only need to provide `data` and `label_cols` when per-study summaries are requested, because these are used to attach study information to the output. Note: The data frame supplied to `summarize_tri_ma()` must have the same row order as the data used when fitting the model. This ensures that the study labels correspond to the correct study-specific estimates.
+The first few columns of the per-study summary data frame correspond to study labels specified in `label_cols`, and the remaining columns are the summary statistics for the per-study estimates of `NB` (mean, median, 95% credible interval lower and higher bounds). We only need to provide `data` and `label_cols` when per-study summaries are requested, because these are used to attach study information to the output. <mark>Note: If the data frame supplied to `summarize_tri_ma()` is not identical to the data used when fitting the model, the two data frames must have the same row order.</mark> This ensures that the study labels correspond to the correct study-specific estimates.
 
 Having those family metrics `NB`, `RU`, `sens`, `spec` which automatically expand, as well as `probuseful` should be enough for most applications, but more advanced users can also check out the quantities mentioned in the advanced section for weak priors specification above.
 
@@ -372,10 +400,9 @@ summarize_tri_ma(
 In the next section, we visualize the per-study and pooled net benefit estimates using forest plots and interpret the results in the context of the ADNEX example.
 
 # Forest plots
-Similar to the summarizer, `plot_forest()` takes posterior samples and the original study-level data as input. The `metric` argument specifies which quantity to plot (`"NB"`, `"RU"`, `"sens"`, or `"spec"`), and `label_cols` specifies which columns from the data should be displayed in the plot table. For net benefit, the threshold `t` must be supplied in case study-level NB values or analytical confidence intervals need to be calculated from the observed counts. The function also allows saving the forest plot as a PNG or PDF file with high resolution by specifying `file_png` and `file_pdf`.
+Similar to the summarizer, `plot_forest()` takes posterior samples and the original study-level data as input. The `metric` argument specifies which quantity to plot (`"NB"`, `"RU"`, `"sens"`, or `"spec"`), and `label_cols` specifies which columns from the data should be displayed in the plot table. The function also allows saving the forest plot as a PNG or PDF file with high resolution by specifying `file_png` and `file_pdf`.
 
-The `reported_est_col` can be used to supply a column that contains the reported point estimates of the quantity of interest in the original studies, which takes priority. When they are not available, the function will use the input data to either calculate or take the results from the trivariate meta-analysis. For net benefit, when the reported estimates are not available from primary studies, the function will be computed by input data TP, TN, n_event, n_nonevent and thus calculate with the formula prevalence * sensitivity -
-    (1 - prevalence) * (1 - specificity) * t / (1 - t). Similarly, for sensitivity and specificity, when the reported estimates are not available from primary studies, the function will compute them from input data. The `reported_low_col` and `reported_high_col` can be used to specify columns that contain the lower and upper bounds of the confidence intervals for the reported estimates, which will be used in the forest plot if supplied. When they are not supplied, the function will compute the confidence intervals from the input data. The argument `interval_fallback` can be used to specify how to compute the intervals when they are not reported in the original studies. For all the metrics (`NB`, `RU`, `sens`, and `spec`), the fallback `model` which uses the credible intervals from posterior summaries from the trivariate meta-analysis is available, while it's not preferred since there's borrow-of-strength, and thus used as a last resort when it's not possible to use other fallback intervals. For net benefit, the fallback `analytic` can be used, which computes the confidence intervals using an analytic formula based on the input data, without borrowing strength across studies [@sande_statistical_2020]. For sensitivity and specificity, the fallback `frequentist` can be used, which computes the confidence intervals using the Wilson method [@brown_2001, @Agresti_1998] based on the input data, without borrowing strength across studies. For relative utility, there's no frequentist method available, and the only fallback method is to use the credible intervals from posterior summaries from the trivariate meta-analysis. The argument `mark_imputed` can be turned on to indicate which studies have imputed estimates (i.e. those that are calculated from the input data or estimated using other alternative methods or estimated using the Bayesian trivariate meta-analysis, rather than directly reported in the original studies), which will be marked with a different symbol in the forest plot. During running, messages will also be printed to indicate which studies have imputed estimates and which method is used for the point estimates and confidence intervals for those studies. If `mark_imputed` is turned on, a dagger will be added to the value imputed for point estimate, and an asterisk will be added to the confidence interval when the confidence interval is imputed. When `mark_imputed` is turned off, the imputed estimates will not be marked differently in the forest plot, but messages will still be printed to indicate which studies have imputed estimates and which method is used for the point estimates and confidence intervals for those studies.
+The `reported_est_col` can be used to supply a column that contains the reported point estimates of the quantity of interest in the original studies, which <mark>we recommend to include in the plot.</mark> When they are not available, the function will use the input data to either calculate or take the results from the trivariate meta-analysis. For net benefit, when the reported estimates are not available from primary studies, the function will be computed by input data TP, TN, n_event, n_nonevent and thus calculate with the formula prevalence * sensitivity - (1 - prevalence) * (1 - specificity) * t / (1 - t). <mark>Hence, the threshold `t` must be supplied in case study-level NB values or confidence intervals need to be calculated from the observed counts.</mark> Similarly, for sensitivity and specificity, when the reported estimates are not available from primary studies, the function will compute them from input data. The `reported_low_col` and `reported_high_col` can be used to specify columns that contain the lower and upper bounds of the confidence intervals for the reported estimates, which will be used in the forest plot if supplied. When they are not supplied, the function will compute the confidence intervals from the input data. <mark>For relative utility, its computation is entirely based on the trivariate model.</mark> The argument `interval_fallback` can be used to specify how to compute the intervals when they are not reported in the original studies. For all the metrics (`NB`, `RU`, `sens`, and `spec`), the fallback `model` which uses the credible intervals from posterior summaries from the trivariate meta-analysis is available, <mark>although we do not recommend this as these would deviate from the confidence intervals in the original studies due to borrowing-of-strength and shrinkage towards the pooled estimate.</mark> For net benefit, the fallback `frequentist` can be used, which computes the confidence intervals using an analytic formula based on the input data, without borrowing strength across studies [@sande_statistical_2020]. For sensitivity and specificity, the fallback `frequentist` can be used, which computes the confidence intervals using the<mark> Wilson's method [@Agresti_1998; @brown_2001]</mark> based on the input data, without borrowing strength across studies. For relative utility, there's no frequentist method available, and the only fallback method is to use the credible intervals from posterior summaries from the trivariate meta-analysis. The argument `mark_imputed` can be turned on to indicate which studies have imputed estimates (i.e. those that are calculated from the input data or estimated using other alternative methods or estimated using the Bayesian trivariate meta-analysis, rather than directly reported in the original studies), which will be marked with a different symbol in the forest plot. During running, messages will also be printed to indicate which studies have imputed estimates and which method is used for the point estimates and <mark>intervals</mark> for those studies. If `mark_imputed` is turned on, a dagger will be added to the value imputed for point estimate, and an asterisk will be added to the <mark>interval when the interval</mark> is imputed. When `mark_imputed` is turned off, the imputed estimates will not be marked differently in the forest plot, but messages will still be printed to indicate which studies have imputed estimates and which method is used for the point estimates and <mark>intervals</mark> for those studies.
     
 For additional arguments that can be used to customize the forest plot, please refer to the documentation by running `?plot_forest`.
 
@@ -400,43 +427,33 @@ plot_forest(
 
 ```
 
-Interpretation of the forest plot:
-The forest plot shows the net benefit of the model across the 37 external validation studies of ADNEX at a threshold of 0.1.
-Each square represents the estimated net benefit in one study. The horizontal line shows its 95% confidence interval estimated by the aforementioned method. Note here the `mark_imputed` is turned off because the net benefit estimates for all the studies are computed from the input data rather than directly reported in the original studies, and thus it's turned off to make the plot nicer.
+
+<mark>The forest plot shows</mark> the net benefit of the model across the 37 external validation studies of ADNEX at a threshold of 0.1.
+Each square represents the estimated net benefit in one study. The horizontal line shows its 95% confidence interval estimated by the aforementioned method. <mark>Note here the `mark_imputed` is turned off because the net benefit estimates for all the studies are computed from the input data.</mark>
 We see substantial variation across studies with net benefit ranges from around 0.01 up to around 0.68.
 This reflects heterogeneity between centers.
 
 At the bottom, the diamond represents the pooled net benefit across studies.
 The pooled net benefit estimate for the model is `r round(summary(fit_voi$samples[,"pooledNB"])$statistics[["Mean"]], 2)`, with a 95% credible interval from `r round(summary(fit_voi$samples[,"pooledNB"])$quantiles[["2.5%"]], 2)` to `r round(summary(fit_voi$samples[,"pooledNB"])$quantiles[["97.5%"]], 2)`. 
-This means that, using the model is equivalent to identifying about `r round(summary(fit_voi$samples[,"pooledNB"])$statistics[["Mean"]], 2)*100` true positives per 100 patients without increasing unnecessary interventions. 
+This means that, using the model is equivalent to identifying about `r round(summary(fit_voi$samples[,"pooledNB"])$statistics[["Mean"]], 2)*100` <mark>net</mark> true positives per 100 patients without increasing unnecessary interventions. 
 For comparison, the net benefit of treating all patients is `r round(summary(fit_voi$samples[,"pooledNB_TA"])$statistics[["Mean"]], 2)`.
-So the model improves net benefit by about `r round(summary(fit_voi$samples[,"pooledNB"])$statistics[["Mean"]],2) - round(summary(fit_voi$samples[,"pooledNB_TA"])$statistics[["Mean"]],2)`, corresponding to `r (round(summary(fit_voi$samples[,"pooledNB"])$statistics[["Mean"]],2) - round(summary(fit_voi$samples[,"pooledNB_TA"])$statistics[["Mean"]],2))*100` additional true positives per 100 patients compared to the treat all strategy.
-If we scale this to the European population of around 350,000 women assessed each year, this difference corresponds to roughly `r (round(summary(fit_voi$samples[,"pooledNB"])$statistics[["Mean"]],2) - round(summary(fit_voi$samples[,"pooledNB_TA"])$statistics[["Mean"]],2))*350000` additional correctly managed cancers per year.
+So the model improves net benefit by about `r round(summary(fit_voi$samples[,"pooledNB"])$statistics[["Mean"]],2) - round(summary(fit_voi$samples[,"pooledNB_TA"])$statistics[["Mean"]],2)`, corresponding to `r (round(summary(fit_voi$samples[,"pooledNB"])$statistics[["Mean"]],2) - round(summary(fit_voi$samples[,"pooledNB_TA"])$statistics[["Mean"]],2))*100` additional <mark>net</mark> true positives per 100 patients compared to the treat all strategy. If we scale this to the European population of around <mark>350000</mark> women assessed each year, this difference corresponds to roughly `r (round(summary(fit_voi$samples[,"pooledNB"])$statistics[["Mean"]],2) - round(summary(fit_voi$samples[,"pooledNB_TA"])$statistics[["Mean"]],2))*350000` additional correctly managed cancers per year.
 
-Below that, we see the prediction interval, from `r round(summary(fit_voi$samples[,"NBnew"])$quantiles[["2.5%"]], 2)` to `r round(summary(fit_voi$samples[,"NBnew"])$quantiles[["97.5%"]], 2)`. 
-This interval reflects the range of net benefit we would expect in a new center.
-So although the summary estimate is positive, the performance we can expect for an unseen setting can vary substantially.
+Below that, we see the prediction interval, from `r round(summary(fit_voi$samples[,"NBnew"])$quantiles[["2.5%"]], 2)` to `r round(summary(fit_voi$samples[,"NBnew"])$quantiles[["97.5%"]], 2)`. This interval reflects the range of net benefit we would expect in a new center. So although the summary estimate is positive, the performance we can expect for an unseen setting can vary substantially.
 
 We’ve seen the comparison of the model to treat all which yields a difference of `r round(summary(fit_voi$samples[,"pooledNB"])$statistics[["Mean"]],2) - round(summary(fit_voi$samples[,"pooledNB_TA"])$statistics[["Mean"]],2)` in net benefit. The net benefit of the treat none strategy is by definition 0. This shows that the model outperforms the default treat all and treat none strategies.
 
-Finally, we estimate the probability that the model is useful in a new setting.
-By useful, we mean that its net benefit exceeds that of the best alternative strategy at this threshold.
-
-For ADNEX at threshold 0.1, this probability is `r round(summary(fit_voi$samples[,"probuseful"])$statistics[["Mean"]],2)`.
-
-So in `r paste0(round(summary(fit_voi$samples[,"probuseful"])$statistics[["Mean"]],2)*100, "%")` of new centers, we expect the model to provide higher net benefit than the two default strategies.
+<mark>Finally, we estimate the probability that the model is useful in a new setting. By useful, we mean that its net benefit exceeds that of the best alternative strategy at this threshold. For ADNEX at threshold 0.1, this probability is `r round(summary(fit_voi$samples[,"probuseful"])$statistics[["Mean"]],2)`. So in `r paste0(round(summary(fit_voi$samples[,"probuseful"])$statistics[["Mean"]],2)*100, "%")` of new centers, we expect the model to provide higher net benefit than the two default strategies.</mark>
 
 Forest plots are also available for relative utility (`RU`), sensitivity (`sens`), and specificity (`spec`), and can be obtained by changing the `metric` argument in the `plot_forest()` function.
 
 
 # Value-of-information analysis
-Moving on to value-of-information (VOI) analysis, we can obtain quantities such as the expected value of perfect information (EVPI) by setting `compute_EVPI = TRUE` when fitting the model. This adds the JAGS nodes required for VOI calculations and returns VOI metrics in the fitted object.
+<mark>Value-of-information metrics like Expected Value of Perfect Information (EVPI) help estimate how much better a decision surrounding prediction model or biomarker adoption could become if we had more information before making a choice. </mark>We can obtain quantities such as the expected value of perfect information (EVPI) by setting `compute_EVPI = TRUE` when fitting the model. This adds the JAGS nodes required for VOI calculations and returns VOI metrics in the fitted object.
 
-Using the same fitted object for the trivariate meta-analysis summaries and the VOI metrics is important. In JAGS, adding nodes and changing the set of monitored nodes can change the MCMC draws, even if the model settings and seed are the same. Therefore, when we plan to report both the meta-analysis results and VOI quantities, we fit the model once with `compute_EVPI = TRUE` and use the same posterior samples throughout.
+Using the same fitted object for the trivariate meta-analysis summaries and the VOI metrics is <mark>recommended.</mark> In JAGS, adding nodes and changing the set of monitored nodes can change the MCMC draws, even if the model settings and seed are the same. Therefore, when we plan to report both the meta-analysis results and VOI quantities, we fit the model once with `compute_EVPI = TRUE` and use the same posterior samples throughout.
 
-The argument `center_rows` specifies which study rows are included in the center-specific EVPI output. The argument `center_label_cols` specifies which columns are used to label those centers. The argument `auto_resample` controls whether the function should automatically draw additional samples until the VOI diagnostics meet the specified precision criteria. In this vignette, we set `auto_resample = FALSE` to keep the runtime manageable.
-
-`compute_evppi_prev` can be used to turn on the calculation of expected value of perfect partial information (EVPPI) for prevalence, which is set to `TRUE` by default. The argument `center_rows` can be used to specify which rows (centers) to include in the center-specific EVPI calculation, which by default is set to `NULL`, and can be turned on by setting a vector of row numbers corresponding to the centers to include in the center-specific EVPI calculation. The argument `center_label_cols` can be used to specify which columns to use for labeling the centers in the output of center-specific EVPI, which is only relevant when `center_rows` is not `NULL`. The argument `auto_resample` can be used to specify whether to automatically draw additional samples until diagnostics indicate that the estimates of VOI metrics are stable, which is set to `TRUE` by default. When `auto_resample` is turned on, the function will check the stability of the MCMC draws after the initial sampling process, and if the diagnostics indicate that the estimates are not stable, it will automatically draw additional samples until they are stable. More arguments related to the diagnostics and automatic resampling process can be found in the documentation by running `?MA_NB_tri`.
+`compute_evppi_prev` can be used to turn on the calculation of expected value of perfect partial information (EVPPI) for prevalence, which is set to `TRUE` by default. The argument `center_rows` can be used to specify which rows (centers) to include in the center-specific EVPI calculation, which by default is set to `NULL`, and can be turned on by setting a vector of row numbers corresponding to the centers to include in the center-specific EVPI calculation. The argument `center_label_cols` can be used to specify which columns to use for labeling the centers in the output of center-specific EVPI, which is only relevant when `center_rows` is not `NULL`. The argument `auto_resample` can be used to specify whether to automatically draw additional samples until diagnostics indicate that the estimates of VOI metrics are stable, which is set to `TRUE` by default. When `auto_resample` is turned on, the function will check the stability of the MCMC draws after the initial sampling process, and if the diagnostics indicate that the estimates are not stable, it will automatically draw additional samples until they are stable. In this vignette, we set `auto_resample = FALSE` to keep the runtime <mark>short</mark>. More arguments related to the diagnostics and automatic resampling process can be found in the documentation by running `?MA_NB_tri`.
 
 Here we use the `fit_voi` object created above with the code reiterated for clarity.
 
@@ -472,27 +489,28 @@ print(fit_voi$voi_diagnostics, width = Inf)
 ```
 # Population-level and cluster-level EVPI, and EVPPI for prevalence
 
-We can obtain the population-level EVPI, cluster-level EVPI, and EVPPI for prevalence from the `voi_metrics` element of the fitted object. `winner_strategy` indicates which strategy has the highest expected net benefit under current information. `NB_currentinfo` is the expected net benefit of this current optimal strategy, chosen among treat-none, the model, and treat-all. The EVPI quantities are calculated relative to this current decision, so they represent the expected gain from resolving uncertainty about which strategy should be chosen. `NB_cluster_perfectinfo`, `NB_population_perfectinfo`, and `NB_cluster_partialprev_pi` are the expected net benefits under cluster-level perfect information, population-level perfect information, and cluster-level partial perfect information for prevalence, respectively.
+We can obtain the population-level EVPI, cluster-level EVPI, and EVPPI for prevalence from the `voi_metrics` element of the fitted object. `winner_strategy` indicates which strategy has the highest expected net benefit under current information<mark>, based on the posterior predictive distribution</mark>. `NB_currentinfo` is the expected net benefit of this current optimal strategy, chosen among treat-none, the model, and treat-all<mark>, based on the posterior predictive distribution</mark>. The EVPI quantities are calculated relative to this current decision, so they represent the expected <mark>net benefit</mark> gain from resolving uncertainty about which strategy should be chosen. `NB_cluster_perfectinfo`, `NB_population_perfectinfo`, and `NB_cluster_partialprev_pi` are the expected net benefits under cluster-level perfect information<mark> (i.e. infinite sample size per center)</mark>, population-level perfect information, and cluster-level partial perfect information for prevalence<mark> (assuming prevalence is known but sensitivity and specificity are not)</mark>, respectively.
 
 Interpretation:
 Population-level EVPI captures the expected NB gain if our recommendation of the global strategy was made based on perfect information. 
-It asks the question: if we had complete information, would we change the overall strategy that we recommend everywhere? Here the population EVPI is `r fit_voi$voi_metrics$EVPI_population_perfectinfo`, which means that even if we had perfect information, we would not change the overall recommendation to adopt the model.
+It asks the question: if we had complete information, would we change the overall strategy that we recommend? Here the population EVPI is `r fit_voi$voi_metrics$EVPI_population_perfectinfo`, which means that even if we had perfect information, we would not change the overall recommendation to adopt the model.
 
-EVPI at the cluster level captures the expected net benefit gain if we recommend an optimal strategy for each cluster, if we knew the full information for each cluster. It asks a different question: if each center could choose its own optimal strategy, would perfect information change those center-specific decisions? The cluster-level EVPI was `r fmt(fit_voi$voi_metrics$EVPI_cluster_perfectinfo, 6)`. When scaled to the European population, this corresponds to approximately `r fmt_int(fit_voi$voi_metrics$EVPI_cluster_perfectinfo*350000)` additional true positives, or about `r fmt_int(fit_voi$voi_metrics$EVPI_cluster_perfectinfo*350000*0.1/0.9)` avoided unnecessary interventions given the threshold of 0.1. So while the global recommendation is stable, there remains some value in resolving uncertainty at the center level.
+EVPI at the cluster level captures the expected net benefit gain if we recommend an optimal strategy for each cluster, if we knew the full information for each cluster<mark> (seen and unseen)</mark>. It asks a different question: if each center could choose its own optimal strategy, would perfect information change those center-specific decisions? The cluster-level EVPI was `r fmt(fit_voi$voi_metrics$EVPI_cluster_perfectinfo, 6)`. When scaled to the European population, this corresponds to approximately `r fmt_int(fit_voi$voi_metrics$EVPI_cluster_perfectinfo*350000)` additional true positives, or about `r fmt_int(fit_voi$voi_metrics$EVPI_cluster_perfectinfo*350000*0.1/0.9)` avoided unnecessary interventions given the threshold of 0.1. So while the global recommendation is stable, there remains some value in resolving uncertainty at the center level.
 
-But asking every center to know perfect information about sensitivity, specificity and prevalence is quite demanding. So we can ask a more practical question. What if we knew the disease prevalence perfectly in each center? That alone could already help guide decisions. For example, in a center with very high prevalence, they might be better off treating all patients. In a center with lower prevalence, they might prefer using the model instead. The expected value of perfect prevalence information measures the expected gain from knowing prevalence perfectly, while sensitivity and specificity remain uncertain. In this case, the EVPPI was small for the case study, which was `r fmt(fit_voi$voi_metrics$EVPPI_cluster_perfectprevalenceinfo, 6)`, corresponding to `r fmt(fit_voi$voi_metrics$EVPPI_cluster_perfectprevalenceinfo*350000)` net true positives when scaled to the EU population.
+But asking every center to know perfect information about sensitivity, specificity and prevalence is quite demanding. So we can ask a more practical question. What if we knew the disease prevalence perfectly in each center? That alone could already help guide decisions. For example, in a center with very high prevalence, they might be better off treating all patients. In a center with lower prevalence, they might prefer using the model instead. The expected value of perfect prevalence information measures the expected gain from knowing prevalence perfectly, while sensitivity and specificity remain uncertain. In this case, the EVPPI was small for the case study, which was `r fmt(fit_voi$voi_metrics$EVPPI_cluster_perfectprevalenceinfo, 6)`, corresponding to `r fmt_int(fit_voi$voi_metrics$EVPPI_cluster_perfectprevalenceinfo*350000)` net true positives when scaled to the EU population.
 
-`diff_modelvsTA` is the difference in net benefit between the model and the treat all strategy, `Pooled` is when we subtract the pooled net benefit of the treat all strategy from the net benefit of the model, and `New` is when we subtract the net benefit of the treat all strategy in a new setting from the net benefit of the model in a new setting, and the mean and the 95% intervals are given for both.
+<mark>`diff_modelvsTA` gives the difference in net benefit between the model and the treat all strategy. `Pooled` gives the difference based on the posterior distribution and corresponds to the pooled net benefit of the model minus the pooled net benefit of treat all. `New` gives the difference based on the predictive distribution and represents the expected difference in a new setting. They may differ, and the latter is recommended to be used for implementation decisions [@ades_interpretation_2005]. Intervals for both represent the 95% credible and predictive intervals, respectively.</mark>
 
 ```{r eval=FALSE}
-fit_voi$voi_metrics
+options(scipen = 999)
+as.data.frame(fit_voi$voi_metrics)
 ```
 
 ```{r echo=FALSE}
 #| cache: true
 #| class-output: output
 options(scipen = 999)
-print(fit_voi$voi_metrics, width = Inf)
+as.data.frame(fit_voi$voi_metrics)
 ```
 
 
@@ -527,7 +545,7 @@ Here the interpretation of EVPI becomes, for a specific center, how much would w
 
 
 # Fitting with different priors
-Finally, we can also fit the model with different priors. For example, to fit the model with a Wishart prior instead of the default weakly informative priors, we can set `prior_type = "wishart"` when fitting the model. When using the Wishart prior, we put the prior on the variance‐covariance matrix as a whole, and this prior is not uninformative [@wynants_random-effects_2018], and thus is not recommended. Nevertheless, for interested users, `prior_type = "wishart"` can be used, with also optional customization of prior hyperparameters via `wishart_priors`, and the posterior summaries, forest plots, and VOI metrics can be obtained the same way as when the weakly realistic priors are used.
+Finally, we can also fit the model with different priors. For example, to fit the model with a Wishart prior instead of the default weakly informative priors, we can set `prior_type = "wishart"` when fitting the model. When using the Wishart prior, we put the prior on the variance‐covariance matrix as a whole. <mark>This prior</mark> is not uninformative [@wynants_random-effects_2018], and thus is not recommended. Nevertheless, for interested users, `prior_type = "wishart"` can be used, with also optional customization of prior hyperparameters via `wishart_priors`, and the posterior summaries, forest plots, and VOI metrics can be obtained the same way as when the weakly realistic priors are used.
 ```{r eval=FALSE}
 # fit with VOI enabled
 

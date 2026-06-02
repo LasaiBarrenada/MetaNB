@@ -72,9 +72,9 @@ model-based values.}
 
 \item{interval_fallback}{Optional character string specifying the fallback
 interval method for studies lacking reported intervals. If \code{NULL},
-defaults are chosen by metric: \code{"frequentist"} (Wilson's method via
-the \code{madad} function in the pacakge \pkg{mada}) for sensitivity and
-specificity, \code{"analytic"} for NB,
+defaults are chosen by metric: \code{"frequentist"} for NB (Sande et al. 2020), and also \code{"frequentist"}
+for sensitivity and specificity (Wilson's method via
+the \code{madad} function in the pacakge \pkg{mada}),
 and \code{"model"} (posterior CrI) for RU.}
 
 \item{mark_imputed}{Logical. If \code{TRUE}, per-study rows where the

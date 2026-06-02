@@ -110,11 +110,22 @@ convergence diagnostics (trace plots). Set to \code{NULL} or
 
 \item{return_vars}{Character vector of variable families or individual
 JAGS node names to monitor and return. Family names (\code{"NB"},
-\code{"RU"}, \code{"probuseful"}, \code{"sens"}, \code{"spec"}) are
+\code{"RU"}, \code{"sens"}, \code{"spec"}) are
 automatically expanded to include per-study, pooled, and predictive
 nodes. When \code{compute_EVPI = TRUE}, VOI-required nodes are added
 automatically regardless of this argument. Default:
-\code{c("NB", "probuseful")}.}
+\code{c("NB", "probuseful")}.
+Common options include:
+\itemize{
+\item \code{NB}: Net benefit related parameters, including per-study, pooled and predictive posteriors, for
+both the model, treat all and treat none strategies.
+\item \code{RU}: Relative utility related parameters, including per-study, pooled and predictive posteriors.
+\item \code{probuseful}: Posterior probability that the model is clinically useful.
+\item \code{sens}: Sensitivity related parameters, including per-study, pooled and predictive posteriors.
+\item \code{spec}: Specificity related parameters, including per-study, pooled and predictive posteriors.
+Advanced users may request additional parameters. Please refer to model_text_weak.R
+and model_text_wishart.R on GitHub for the JAGS code.
+}}
 
 \item{weak_priors}{Named list of scalar overrides for the weak prior
 hyperparameters. Valid names: \code{mu_etap}, \code{tau_etap},
@@ -206,9 +217,11 @@ labels corresponding to \code{center_rows}. \code{NULL} when
 \description{
 Fits a Bayesian trivariate random-effects meta-analysis model jointly
 modelling sensitivity, specificity, and prevalence across studies using
-study-level data. Returns posterior MCMC samples for Net Benefit (NB),
-Relative Utility (RU), and related clinical utility metrics at a
-user-specified decision threshold. When \code{compute_EVPI = TRUE},
+study-level count data. Returns posterior MCMC samples for Net Benefit (NB),
+Relative Utility (RU), sensitivity, specificity and related clinical utility metrics at a
+user-specified decision threshold.
+
+When \code{compute_EVPI = TRUE},
 also computes Value of Information (VOI) metrics including the Expected
 Value of Perfect Information (EVPI) and optionally the Expected Value of
 Partial Perfect Information (EVPPI) for prevalence, with optional

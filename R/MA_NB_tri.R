@@ -62,11 +62,20 @@
 #'   "pooledNB_TA", "pooledRU")`.
 #' @param return_vars Character vector of variable families or individual
 #'   JAGS node names to monitor and return. Family names (`"NB"`,
-#'   `"RU"`, `"probuseful"`, `"sens"`, `"spec"`) are
+#'   `"RU"`, `"sens"`, `"spec"`) are
 #'   automatically expanded to include per-study, pooled, and predictive
 #'   nodes. When `compute_EVPI = TRUE`, VOI-required nodes are added
 #'   automatically regardless of this argument. Default:
 #'   `c("NB", "probuseful")`.
+#'   Common options include:
+#'   - `NB`: Net benefit related parameters, including per-study, pooled and predictive posteriors, for
+#'   both the model, treat all and treat none strategies.
+#'   - `RU`: Relative utility related parameters, including per-study, pooled and predictive posteriors.
+#'   - `probuseful`: Posterior probability that the model is clinically useful.
+#'   - `sens`: Sensitivity related parameters, including per-study, pooled and predictive posteriors.
+#'   - `spec`: Specificity related parameters, including per-study, pooled and predictive posteriors.
+#'   Advanced users may request additional parameters. Please refer to model_text_weak.R
+#'   and model_text_wishart.R on GitHub for the JAGS code.
 #' @param weak_priors Named list of scalar overrides for the weak prior
 #'   hyperparameters. Valid names: `mu_etap`, `tau_etap`,
 #'   `mu_lambdasens0`, `tau_lambdasens0`, `mu_lambdaspec0`,

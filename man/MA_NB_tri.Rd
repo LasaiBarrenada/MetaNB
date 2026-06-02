@@ -114,7 +114,9 @@ JAGS node names to monitor and return. Family names (\code{"NB"},
 automatically expanded to include per-study, pooled, and predictive
 nodes. When \code{compute_EVPI = TRUE}, VOI-required nodes are added
 automatically regardless of this argument. Default:
-\code{c("NB", "probuseful")}.
+\code{c("NB", "probuseful")}. Advanced users may request additional parameters.
+Please refer to model_text_weak.R
+and model_text_wishart.R on GitHub for the JAGS code.
 Common options include:
 \itemize{
 \item \code{NB}: Net benefit related parameters, including per-study, pooled and predictive posteriors, for
@@ -123,8 +125,6 @@ both the model, treat all and treat none strategies.
 \item \code{probuseful}: Posterior probability that the model is clinically useful.
 \item \code{sens}: Sensitivity related parameters, including per-study, pooled and predictive posteriors.
 \item \code{spec}: Specificity related parameters, including per-study, pooled and predictive posteriors.
-Advanced users may request additional parameters. Please refer to model_text_weak.R
-and model_text_wishart.R on GitHub for the JAGS code.
 }}
 
 \item{weak_priors}{Named list of scalar overrides for the weak prior

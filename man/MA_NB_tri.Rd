@@ -65,7 +65,7 @@ returned if \code{return_known = TRUE}. Default \code{0.5}.}
 
 \item{return_known}{Logical. If \code{TRUE}, also returns posteriors
 evaluated at \code{prev_known} (e.g. \code{pooledNB_known},
-\code{NBnew_known}). Default \code{FALSE}.}
+\code{NBnew_known}, \code{pooledNB_TA_known}, \code{NBnew_TA_known}). Default \code{FALSE}.}
 
 \item{compute_EVPI}{Logical. If \code{TRUE}, enables VOI computation.
 Forces the necessary JAGS nodes into the monitored set and activates
@@ -119,12 +119,20 @@ Please refer to model_text_weak.R
 and model_text_wishart.R on GitHub for the JAGS code.
 Common options include:
 \itemize{
-\item \code{NB}: Net benefit related parameters, including per-study, pooled and predictive posteriors, for
-both the model, treat all and treat none strategies.
-\item \code{RU}: Relative utility related parameters, including per-study, pooled and predictive posteriors.
+\item \code{NB}: Net benefit related parameters, including per-study
+(\code{NB[1]} to \code{NB[N]}, where N is the total number of studies/centers included in the meta-analysis),
+pooled (\code{pooledNB}, \code{pooledNB_TA}) and predictive (\code{NBnew}, \code{NBnew_TA}) posteriors, for
+both the model and treat all strategies.
+\item \code{RU}: Relative utility related parameters, including per-study
+(\code{RU[1]} to \code{RU[N]}, where N is the total number of studies/centers included in the meta-analysis),
+pooled (\code{pooledRU}) and predictive (\code{RUnew}) posteriors.
 \item \code{probuseful}: Posterior probability that the model is clinically useful.
-\item \code{sens}: Sensitivity related parameters, including per-study, pooled and predictive posteriors.
-\item \code{spec}: Specificity related parameters, including per-study, pooled and predictive posteriors.
+\item \code{sens}: Sensitivity related parameters, including per-study (\code{sens[1]} to \code{sens[N]},
+where N is the total number of studies/centers included in the meta-analysis),
+pooled (\code{pooledsens}) and predictive (\code{sensnew}) posteriors.
+\item \code{spec}: Specificity related parameters, including per-study (\code{spec[1]} to \code{spec[N]},
+where N is the total number of studies/centers included in the meta-analysis),
+pooled (\code{pooledspec}) and predictive (\code{specnew}) posteriors.
 }}
 
 \item{weak_priors}{Named list of scalar overrides for the weak prior

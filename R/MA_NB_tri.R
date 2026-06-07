@@ -28,7 +28,7 @@
 #'   returned if `return_known = TRUE`. Default `0.5`.
 #' @param return_known Logical. If `TRUE`, also returns posteriors
 #'   evaluated at `prev_known` (e.g. `pooledNB_known`,
-#'   `NBnew_known`). Default `FALSE`.
+#'   `NBnew_known`, `pooledNB_TA_known`, `NBnew_TA_known`). Default `FALSE`.
 #' @param compute_EVPI Logical. If `TRUE`, enables VOI computation.
 #'   Forces the necessary JAGS nodes into the monitored set and activates
 #'   the iterative sampling loop if `auto_resample = TRUE`.
@@ -70,12 +70,20 @@
 #'   Please refer to model_text_weak.R
 #'   and model_text_wishart.R on GitHub for the JAGS code.
 #'   Common options include:
-#'   - `NB`: Net benefit related parameters, including per-study, pooled and predictive posteriors, for
-#'   both the model, treat all and treat none strategies.
-#'   - `RU`: Relative utility related parameters, including per-study, pooled and predictive posteriors.
+#'   - `NB`: Net benefit related parameters, including per-study
+#'   (`NB[1]` to `NB[N]`, where N is the total number of studies/centers included in the meta-analysis),
+#'   pooled (`pooledNB`, `pooledNB_TA`) and predictive (`NBnew`, `NBnew_TA`) posteriors, for
+#'   both the model and treat all strategies.
+#'   - `RU`: Relative utility related parameters, including per-study
+#'   (`RU[1]` to `RU[N]`, where N is the total number of studies/centers included in the meta-analysis),
+#'   pooled (`pooledRU`) and predictive (`RUnew`) posteriors.
 #'   - `probuseful`: Posterior probability that the model is clinically useful.
-#'   - `sens`: Sensitivity related parameters, including per-study, pooled and predictive posteriors.
-#'   - `spec`: Specificity related parameters, including per-study, pooled and predictive posteriors.
+#'   - `sens`: Sensitivity related parameters, including per-study (`sens[1]` to `sens[N]`,
+#'   where N is the total number of studies/centers included in the meta-analysis),
+#'   pooled (`pooledsens`) and predictive (`sensnew`) posteriors.
+#'   - `spec`: Specificity related parameters, including per-study (`spec[1]` to `spec[N]`,
+#'   where N is the total number of studies/centers included in the meta-analysis),
+#'    pooled (`pooledspec`) and predictive (`specnew`) posteriors.
 #' @param weak_priors Named list of scalar overrides for the weak prior
 #'   hyperparameters. Valid names: `mu_etap`, `tau_etap`,
 #'   `mu_lambdasens0`, `tau_lambdasens0`, `mu_lambdaspec0`,

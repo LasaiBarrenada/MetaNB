@@ -23,6 +23,11 @@ Imports:
     rlang,
     tibble,
     voi
+Suggests:
+    knitr,
+    rmarkdown,
+    quarto
+VignetteBuilder: quarto
 RoxygenNote: 7.3.3
 Roxygen: list(markdown = TRUE)
 Depends: 

@@ -6,8 +6,11 @@ format:
   html:
     toc: true
     number-sections: true
-    embed-resources: true
 editor: visual
+vignette: >
+  %\VignetteIndexEntry{MetaNB}
+  %\VignetteEngine{quarto::html}
+  %\VignetteEncoding{UTF-8}
 ---
 
 ```{css, echo = FALSE}
@@ -35,8 +38,6 @@ The main input the package takes is a data frame with one row per study or cente
 The central function is `MA_NB_tri()`. It fits the Bayesian trivariate random-effects model and returns posterior MCMC samples, together with metadata about the model fitting process and prior settings. Downstream functions then work from those posterior samples. For example, `summarize_tri_ma()` summarizes selected posteriors, and `plot_forest()` visualizes study-specific, pooled, and predictive results.
 
 When `compute_EVPI = TRUE` and other related arguments are supplied, `MA_NB_tri()` also monitors the additional quantities needed for VOI analysis and returns VOI metrics in the same fitted object. This allows the meta-analysis summaries, forest plots, and VOI metrics to be based on the same MCMC run.
-
-
 
 # Example data
 
@@ -188,7 +189,7 @@ In our implementation, the logit prevalence is controlled by `etap`, the summary
 
 Between-study heterogeneity is represented through variance parameters for prevalence, sensitivity, and specificity (`varprev`, `varsens`, `varspec`), with half-normal priors. Correlations among the three outcomes are represented by `corr.sens.spec`, `corr.spec.prev`, and `corr.sens.prev`. In our specification, two correlations (correlations between logit sensitivity and logit specificity, and between logit specificity and logit prevalence) use Fisher-z normal priors (`zss`, `zsp`) and one correlation uses a uniform prior (`corr.sens.prev ~ dunif(a_csp, b_csp)`). Visualizations of those priors can be found in Figure A1, the Appendix from @wynants_random-effects_2018.
 
-Users interested in the full model specification can inspect the JAGS code in `model_text_weak.R` in the GitHub repository. 
+Users interested in the full model specification can inspect the JAGS code in `model_text_weak.R` in the GitHub repository.
 
 We can override any subset of these hyperparameters using `weak_priors = list(...)`. Any values not supplied remain at their defaults, which makes it straightforward to run prior sensitivity analyses.
 

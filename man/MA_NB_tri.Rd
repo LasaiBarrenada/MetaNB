@@ -32,7 +32,7 @@ MA_NB_tri(
   auto_resample = TRUE,
   max_rounds = 10,
   sample_by = 2000,
-  max_draws = 200000,
+  max_draws = 2e+05,
   sigma_min = 2,
   ess_min = 400,
   compute_evppi_prev = TRUE,

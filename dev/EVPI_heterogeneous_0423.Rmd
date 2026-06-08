@@ -4,9 +4,14 @@ author: "Kim (Zhipei) Wang"
 date: "2026-04-20"
 output: html_document
 ---
+
+This document is intended for reproducing the results in the paper. For more details of the MetaNB package, please refer to the package vignette.
+
 ```{r}
-library(dplyr)
+# download the MetaNB package from GitHub
 remotes::install_github("zhipeiwang/MetaNB")
+
+# load the necessary packages
 library(MetaNB)
 library(ggplot2)
 library(coda)
@@ -16,41 +21,50 @@ library(grid)
 library(dplyr)
 ```
 
-# EVPI metrics
-# EVPI calculations using trivariate meta-analysis
+# calculation of the EVPI calculations using the trivariate random-effects meta-analysis
 ```{r}
-fit <- MA_NB_tri(
+# fit using the main function in the MetaNB package
+fit_voi <- MA_NB_tri(
   data_ADNEXCA125,
   tp = tp, tn = tn, n_event = n_event, n_nonevent = n_nonevent,
-  center_rows = 1:37,
-  center_label_cols = c("Publication", "Country"),
+  center_rows = 1:37, # which rows (centers) to calculate the center-specific EVPI calculation
+  center_label_cols = c("Publication", "Country"), # which columns to use for labeling the centers in the output of center-specific EVPI
   prior_type = "weak",
   return_vars = c("NB", "probuseful", "pooledprev"),
-  t = 0.1,
-  seed = 123,
-  compute_EVPI = TRUE,
-  sample_by = 1000,
-  auto_resample = FALSE
+  t = 0.1, # 10% decision threshold
+  seed = 123, # random seed for reproducibility
+  compute_EVPI = TRUE, # enable the computation of VOI quantities
+  auto_resample = FALSE # whether to automatically draw additional samples until diagnostics indicate that the EVPI estimates are stable
 )
+```
+
+```{r}
+# check the convergence of key parameters
+traceplot(fit_voi$samples[, c("pooledNB", "pooledNB_TA", "NBnew", "NBnew_TA", "ENBnew", "ENBnew_TA")])
+```
+
+
+
+```{r}
+# ensure that the values are printed without scientific notation
 options(scipen = 999)
+
+# check the diagnostics for the VOI estimates
+fit_voi$voi_diagnostics
 ```
 
 ```{r}
-fit$voi_diagnostics
+fit_voi$voi_center_metrics
 ```
 
 ```{r}
-fit$voi_center_metrics
-```
-
-```{r}
-fit$voi_metrics
+fit_voi$voi_metrics
 ```
 
 ### Meta-analysis results for the IOTA-ADNEX model
 ```{r}
 summary <- summarize_tri_ma(
-  fit$samples,
+  fit_voi$samples,
   data = data_ADNEXCA125,
   label_cols = c("Publication", "Country", "N", "Prev"),
   metrics = c("NB", "probuseful"),
@@ -63,7 +77,7 @@ summary
 
 ```{r}
 plot_forest(
-  fit$samples,
+  fit_voi$samples,
   data = data_ADNEXCA125,
   label_cols = c("Publication", "Country", "N", "Prev"),
   metric = "NB",
@@ -77,7 +91,7 @@ plot_forest(
 ```
 
 ```{r}
-fit$voi_metrics$diff_modelvsTA
+fit_voi$voi_metrics$diff_modelvsTA
 ```
 
 ## Single-setting EVPI calculations
@@ -222,7 +236,7 @@ evpi_single_df
 ## triMA results rearranged for comparison
 ```{r}
 # triMA results
-evpi_triMA_df <- fit$center_metrics %>%
+evpi_triMA_df <- fit_voi$voi_center_metrics %>%
   dplyr::left_join(
     data_ADNEXCA125 %>%
       dplyr::mutate(center_row = dplyr::row_number()) %>%
@@ -592,17 +606,24 @@ MA_NB_tri_res_prev09 <- MA_NB_tri(
   return_known = TRUE
 )
 ```
+
+
 ```{r}
 mcmc_hist(MA_NB_tri_res_prev002$samples, pars = c("NBnew", "pooledNB"))
 
 ```
 
+
 ```{r}
 mcmc_hist(MA_NB_tri_res_prev002$samples, pars = c("NBnew_known", "pooledNB_known"))
 ```
+
+
 ```{r}
 mcmc_hist(MA_NB_tri_res_prev09$samples, pars = c("NBnew_known", "pooledNB_known"))
 ```
+
+
 ## extra forest plots
 ```{r}
 #| out-width: 100%

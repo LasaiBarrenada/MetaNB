@@ -5,6 +5,7 @@ author: "Kim (Zhipei) Wang"
 format:
   html:
     toc: true
+    embed-resources: true
     number-sections: true
 editor: visual
 vignette: >

@@ -28,13 +28,21 @@ overflow-y: scroll;
 }
 ```
 
+```{r include=FALSE}
+# remotes::install_github("zhipeiwang/MetaNB")
+library(MetaNB)
+
+# load other packages
+library(dplyr)
+library(coda)
+```
 # Introduction
 
 This vignette provides a step-by-step introduction to the MetaNB package, which implements a trivariate random-effects meta-analysis of prevalence, sensitivity, and specificity, to indirectly meta-analyze Net Benefit, along with associated value-of-information (VOI) metrics for quantifying decision uncertainty. The trivariate random-effects meta-analysis is described in detail in [@wynants_random-effects_2018], and the associated VOI framework is described in \[ref placeholder\].
 
 This vignette demonstrates a typical workflow: importing study-level data, fitting a trivariate meta-analysis model, assessing convergence, summarizing posterior draws, visualizing results with forest plots, and obtaining VOI metrics when decision uncertainty is of interest.
 
-The main input the package takes is a data frame with one row per study or center. At minimum, the model-fitting function requires columns for the number of true positives, true negatives, events, and non-events. Additional columns such as study label, country, and reported point estimates and confidence intervals, can be included and later used for forest plots.
+The main input is a data frame with one row per validation setting. Depending on the application, a validation setting may correspond to a study, center, hospital, registry, or other independently evaluated dataset. At minimum, the model-fitting function requires columns for the number of true positives, true negatives, events, and non-events. Additional columns such as study label, country, and reported point estimates and confidence intervals, can be included and later used for forest plots.
 
 The central function is `MA_NB_tri()`. It fits the Bayesian trivariate random-effects model and returns posterior MCMC samples, together with metadata about the model fitting process and prior settings. Downstream functions then work from those posterior samples. For example, `summarize_tri_ma()` summarizes selected posteriors, and `plot_forest()` visualizes study-specific, pooled, and predictive results.
 
@@ -42,9 +50,13 @@ When `compute_EVPI = TRUE` and other related arguments are supplied, `MA_NB_tri(
 
 # Example data
 
-The IOTA-ADNEX is a regression model that distinguishes between benign and several types of malignant adnexal masses [@van_calster_evaluating_2014]. The dataset used in this vignette is from a systematic review of 37 external validation studies of ADNEX [@barrenada_adnex_2024], in which sensitivity and specificity were meta-analyzed at the commonly used 10% risk of malignancy threshold.
+The IOTA-ADNEX is a regression model that distinguishes between benign and several types of malignant adnexal masses [@van_calster_evaluating_2014]. The dataset used in this vignette is from a systematic review of external validation studies of ADNEX [@barrenada_adnex_2024], in which sensitivity and specificity were meta-analyzed at the commonly used 10% risk of malignancy threshold.
 
-For illustration purposes, we restrict the dataset to studies in which ADNEX was used with CA125, and refer to this subset as `data_ADNEXCA125`. The dataset is available in the MetaNB package, and is loaded automatically with `library(MetaNB)`. It contains the numbers of true positives and true negatives, numbers of events and non-events, reported sensitivity and specificity with corresponding confidence intervals, as well as study-level characteristics such as publication, country, sample size, and prevalence.
+For illustration purposes, we restrict the dataset to studies in which ADNEX was used with CA125, and refer to this subset as `data_ADNEXCA125`. The dataset is available in the MetaNB package, and is loaded automatically with `library(MetaNB)`. It contains the numbers of true positives and true negatives, numbers of events and non-events, reported sensitivity and specificity with corresponding confidence intervals, as well as characteristics of each validation setting such as publication, country, sample size, and prevalence. In this example dataset, rows correspond to validation centers rather than studies, so studies containing multiple centers may contribute more than one row.
+```{r}
+knitr::kable(head(data_ADNEXCA125))
+```
+
 
 Throughout this vignette, we use `data_ADNEXCA125` as a running example to illustrate the package functionality.
 
@@ -64,14 +76,6 @@ library(dplyr)
 library(coda)
 ```
 
-```{r include=FALSE}
-# remotes::install_github("zhipeiwang/MetaNB")
-library(MetaNB)
-
-# load other packages
-library(dplyr)
-library(coda)
-```
 
 ```{r echo=FALSE}
 # set options for better display of tables and numbers
@@ -102,7 +106,7 @@ The argument `seed` can be set for reproducibility so we get the same results wh
 ```{r eval=FALSE}
 # basic fit without VOI
 MA_NB_tri(data = data_ADNEXCA125, # data frame containing the data
-          tp = tp, tn = tn, n_event = n_event, n_nonevent = n_nonevent, # column names in the data frame for the input data
+          tp = TP, tn = TN, n_event = n_event, n_nonevent = n_nonevent, # column names in the data frame for the input data
           prior_type = "weak", # type of prior to use, either "weak" or "wishart"
           t = 0.1, # threshold for defining true positives and true negatives
           return_vars = c("NB", "RU", "probuseful", "sens", "spec"), # we additionally request relative utility (RU), sensitivity (sens), and specificity (spec) because these quantities will be used later in the vignette
@@ -118,7 +122,7 @@ MA_NB_tri(data = data_ADNEXCA125, # data frame containing the data
 # cache is for avoiding re-running the code that's time-consuming every time we knit this file
 # The two identical code chunks are for first displaying the code without running, and second actually running the code and showing the output but without showing the code. This is because otherwise the scrollable feature would apply to both code and output, which is inconvenient for viewing.
 MA_NB_tri(data = data_ADNEXCA125, # data frame containing the data
-          tp = tp, tn = tn, n_event = n_event, n_nonevent = n_nonevent, # column names in the data frame for the input data
+          tp = TP, tn = TN, n_event = n_event, n_nonevent = n_nonevent, # column names in the data frame for the input data
           prior_type = "weak", # type of prior to use, either "weak" or "wishart"
           t = 0.1, # threshold for defining true positives and true negatives
           return_vars = c("NB", "RU", "probuseful", "sens", "spec"), # variables to return in the output
@@ -136,7 +140,7 @@ To obtain value-of-information (VOI) metrics such as the expected value of perfe
 # fit with VOI enabled
 
 fit_voi <- MA_NB_tri(data = data_ADNEXCA125,
-                     tp = tp, tn = tn, n_event = n_event, n_nonevent = n_nonevent,
+                     tp = TP, tn = TN, n_event = n_event, n_nonevent = n_nonevent,
                      prior_type = "weak",
                      t = 0.1,
                      return_vars = c("NB", "RU", "probuseful", "sens", "spec", "pooledprev"),
@@ -147,7 +151,7 @@ fit_voi <- MA_NB_tri(data = data_ADNEXCA125,
                      # VOI specific arguments
                      compute_EVPI = TRUE, # enable the computation of VOI quantities
                      auto_resample = FALSE, # whether to automatically draw additional samples until diagnostics indicate that the EVPI estimates are stable
-                     center_rows = 1:37, # which rows (centers) to calculate the center-specific EVPI calculation
+                     center_rows = 1:36, # which rows (centers) to calculate the center-specific EVPI calculation
                      center_label_cols = c("Publication", "Country") # which columns to use for labeling the centers in the output of center-specific EVPI
                      )
 
@@ -160,7 +164,7 @@ fit_voi <- MA_NB_tri(data = data_ADNEXCA125,
 # fit with VOI enabled
 
 fit_voi <- MA_NB_tri(data = data_ADNEXCA125,
-                     tp = tp, tn = tn, n_event = n_event, n_nonevent = n_nonevent,
+                     tp = TP, tn = TN, n_event = n_event, n_nonevent = n_nonevent,
                      prior_type = "weak",
                      t = 0.1,
                      return_vars = c("NB", "RU", "probuseful", "sens", "spec", "pooledprev"),
@@ -169,7 +173,7 @@ fit_voi <- MA_NB_tri(data = data_ADNEXCA125,
                      return_known = TRUE,
                      compute_EVPI = TRUE, # enable the computation of VOI quantities
                      auto_resample = FALSE, # whether to automatically draw additional samples until diagnostics indicate that the EVPI estimates are stable
-                     center_rows = 1:37, # which rows (centers) to calculate the center-specific EVPI calculation
+                     center_rows = 1:36, # which rows (centers) to calculate the center-specific EVPI calculation
                      center_label_cols = c("Publication", "Country") # which columns to use for labeling the centers in the output of center-specific EVPI
                      )
 
@@ -198,7 +202,7 @@ For example, to change only the prior mean for `etap` (the summary logit prevale
 
 ```{r eval=FALSE}
 MA_NB_tri(data = data_ADNEXCA125,
-          tp = tp, tn = tn, n_event = n_event, n_nonevent = n_nonevent,
+          tp = TP, tn = TN, n_event = n_event, n_nonevent = n_nonevent,
           prior_type = "weak",
           t = 0.1,
           return_vars = c("NB", "RU", "probuseful", "sens", "spec"),
@@ -358,7 +362,7 @@ This optional addition is available for `NB`, `RU`, and `probuseful`.
 ```{r eval=FALSE}
 # fit the model with a known prevalence for the target setting
 fit_prev05 <- MA_NB_tri(data = data_ADNEXCA125,
-                 tp = tp, tn = tn, n_event = n_event, n_nonevent = n_nonevent,
+                 tp = TP, tn = TN, n_event = n_event, n_nonevent = n_nonevent,
                  prior_type = "weak",
                  t = 0.1,
                  prev_known = 0.5, # example known prevalence for the target setting
@@ -382,7 +386,7 @@ summarize_tri_ma(
 #| class-output: output
 # fit the model with a known prevalence for the target setting
 fit_prev05 <- MA_NB_tri(data = data_ADNEXCA125,
-                 tp = tp, tn = tn, n_event = n_event, n_nonevent = n_nonevent,
+                 tp = TP, tn = TN, n_event = n_event, n_nonevent = n_nonevent,
                  prior_type = "weak",
                  t = 0.1,
                  prev_known = 0.5, # example known prevalence for the target setting
@@ -455,7 +459,7 @@ Here we use the `fit_voi` object created above with the code reiterated for clar
 # fit with VOI enabled
 
 fit_voi <- MA_NB_tri(data = data_ADNEXCA125,
-                     tp = tp, tn = tn, n_event = n_event, n_nonevent = n_nonevent,
+                     tp = TP, tn = TN, n_event = n_event, n_nonevent = n_nonevent,
                      prior_type = "weak",
                      t = 0.1,
                      return_vars = c("NB", "RU", "probuseful", "sens", "spec"),
@@ -464,7 +468,7 @@ fit_voi <- MA_NB_tri(data = data_ADNEXCA125,
                      return_known = TRUE,
                      compute_EVPI = TRUE, # enable the computation of VOI quantities
                      auto_resample = FALSE, # whether to automatically draw additional samples until diagnostics indicate that the EVPI estimates are stable
-                     center_rows = 1:37, # which rows (centers) to calculate the center-specific EVPI calculation
+                     center_rows = 1:36, # which rows (centers) to calculate the center-specific EVPI calculation
                      center_label_cols = c("Publication", "Country") # which columns to use for labeling the centers in the output of center-specific EVPI
                      )
 
@@ -545,7 +549,7 @@ Finally, we can also fit the model with different priors. For example, to fit th
 # fit with VOI enabled
 
 fit_voi_wishart <- MA_NB_tri(data = data_ADNEXCA125,
-                     tp = tp, tn = tn, n_event = n_event, n_nonevent = n_nonevent,
+                     tp = TP, tn = TN, n_event = n_event, n_nonevent = n_nonevent,
                      prior_type = "wishart",
                      t = 0.1,
                      return_vars = c("NB", "RU", "probuseful", "sens", "spec"),
@@ -554,7 +558,7 @@ fit_voi_wishart <- MA_NB_tri(data = data_ADNEXCA125,
                      return_known = TRUE,
                      compute_EVPI = TRUE,
                      auto_resample = FALSE,
-                     center_rows = 1:37,
+                     center_rows = 1:36,
                      center_label_cols = c("Publication", "Country")
                      )
 

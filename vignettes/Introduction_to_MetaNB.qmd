@@ -424,6 +424,10 @@ plot_forest(
   fit_voi$samples,
   data = data_ADNEXCA125 %>%
     mutate(Prev = paste0(round(Prev * 100), "%")),
+  tp = TP,
+  tn = TN,
+  n_event = n_event,
+  n_nonevent = n_nonevent,
   label_cols = c("Publication", "Country", "N", "Prev"),
   study_label_col = "Publication",
   metric = "NB",
@@ -434,7 +438,7 @@ plot_forest(
 
 ```
 
-The forest plot shows the net benefit of the model across the 37 external validation studies of ADNEX at a threshold of 0.1. Each square represents the estimated net benefit in one study. The horizontal line shows its 95% confidence interval estimated by the aforementioned method. Note here the `mark_imputed` is turned off because the net benefit estimates for all the studies are computed from the input data. We see substantial variation across studies with net benefit ranges from around 0.01 up to around 0.68. This reflects heterogeneity between centers.
+The forest plot shows the net benefit of the model across the `r nrow(data_ADNEXCA125)` external validation studies of ADNEX at a threshold of 0.1. Each square represents the estimated net benefit in one study. The horizontal line shows its 95% confidence interval estimated by the aforementioned method. Note here the `mark_imputed` is turned off because the net benefit estimates for all the studies are computed from the input data. We see substantial variation across studies with net benefit ranges from around 0.05 up to around 0.68. This reflects heterogeneity between centers.
 
 At the bottom, the diamond represents the pooled net benefit across studies. The pooled net benefit estimate for the model is `r round(summary(fit_voi$samples[,"pooledNB"])$statistics[["Mean"]], 2)`, with a 95% credible interval from `r round(summary(fit_voi$samples[,"pooledNB"])$quantiles[["2.5%"]], 2)` to `r round(summary(fit_voi$samples[,"pooledNB"])$quantiles[["97.5%"]], 2)`. This means that, using the model is equivalent to identifying about `r round(summary(fit_voi$samples[,"pooledNB"])$statistics[["Mean"]], 2)*100` net true positives per 100 patients without increasing unnecessary interventions. For comparison, the net benefit of treating all patients is `r round(summary(fit_voi$samples[,"pooledNB_TA"])$statistics[["Mean"]], 2)`. So the model improves net benefit by about `r round(summary(fit_voi$samples[,"pooledNB"])$statistics[["Mean"]],2) - round(summary(fit_voi$samples[,"pooledNB_TA"])$statistics[["Mean"]],2)`, corresponding to `r (round(summary(fit_voi$samples[,"pooledNB"])$statistics[["Mean"]],2) - round(summary(fit_voi$samples[,"pooledNB_TA"])$statistics[["Mean"]],2))*100` additional net true positives per 100 patients compared to the treat all strategy. If we scale this to the European population of around 350000 women assessed each year, this difference corresponds to roughly `r (round(summary(fit_voi$samples[,"pooledNB"])$statistics[["Mean"]],2) - round(summary(fit_voi$samples[,"pooledNB_TA"])$statistics[["Mean"]],2))*350000` additional correctly managed cancers per year.
 

@@ -155,6 +155,8 @@ plot_forest(
 plot_forest(
   samples   = fit$samples,
   data      = data,
+  tp        = tp,
+  tn        = tn,
   label_cols = c("Publication", "Country"),
   metric    = "sens",
   file_png  = "forest_sens.png"

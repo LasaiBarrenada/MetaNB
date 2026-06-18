@@ -131,6 +131,8 @@
 #' plot_forest(
 #'   samples   = fit$samples,
 #'   data      = data,
+#'   tp        = tp,
+#'   tn        = tn,
 #'   label_cols = c("Publication", "Country"),
 #'   metric    = "sens",
 #'   file_png  = "forest_sens.png"
@@ -203,7 +205,8 @@ plot_forest <- function(
     label_cols = label_cols,
     targets = targets,
     targets_per_study = targets_per_study,
-    return_known = FALSE
+    return_known = FALSE,
+    count_cols = count_cols
   )
   sum_m  <- sum[[metric]]
 

@@ -72,7 +72,8 @@ get_samples <- function(x) {
     label_cols = NULL,
     targets = c("NB", "probuseful"),
     targets_per_study = c("NB"),
-    return_known = FALSE
+    return_known = FALSE,
+    count_cols = NULL
 ) {
   # 1. Extract posterior summaries from the fitted samples
   # 2. Map user-facing metric names (e.g. NB, RU, sens) to JAGS node names
@@ -236,17 +237,13 @@ get_samples <- function(x) {
           }
 
           # add observed rates for sens / spec in study_info
-          if (tar %in% c("sens", "spec")) {
-
-            # compute observed rates if the needed columns exist
-            has_needed <- all(c("tp", "tn", "n_event", "n_nonevent") %in% names(data))
-
-            if (has_needed) {
-              if (tar == "sens") {
-                study_info$Observed <- with(data, tp / n_event)
-              } else {
-                study_info$Observed <- with(data, tn / n_nonevent)
-              }
+          if (tar %in% c("sens", "spec") && !is.null(count_cols)) {
+            if (tar == "sens") {
+              study_info$Observed <-
+                data[[count_cols$tp]] / data[[count_cols$n_event]]
+            } else {
+              study_info$Observed <-
+                data[[count_cols$tn]] / data[[count_cols$n_nonevent]]
             }
           }
 

@@ -549,13 +549,12 @@ build_per_study_display <- function(
     metric,
     per,
     data,
-    center = c("Mean", "Median"),
+    count_cols = NULL,
+    center = c("Median", "Mean"),
     t = NULL,
-
     reported_est_col = NULL,
     reported_low_col = NULL,
     reported_high_col = NULL,
-
     interval_fallback = c("none", "frequentist", "model")
 ) {
   center <- match.arg(center)
@@ -588,7 +587,7 @@ build_per_study_display <- function(
 
   # observed fallback for sens/spec
   if (metric %in% c("sens", "spec") &&
-      all(c("tp", "tn", "n_event", "n_nonevent") %in% names(data))) {
+      !is.null(count_cols)) {
     obs_est <- if (metric == "sens") data$tp / data$n_event else data$tn / data$n_nonevent
     use_obs <- point_source != "reported" & !is.na(obs_est)
 
@@ -605,10 +604,10 @@ build_per_study_display <- function(
     }
 
     nb_obs <- compute_nb_ci_delta(
-      tp = data$tp,
-      tn = data$tn,
-      n_event = data$n_event,
-      n_nonevent = data$n_nonevent,
+      tp = data[[count_cols$tp]],
+      tn = data[[count_cols$tn]],
+      n_event = data[[count_cols$n_event]],
+      n_nonevent = data[[count_cols$n_nonevent]],
       t = t
     )
 

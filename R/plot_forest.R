@@ -18,6 +18,10 @@
 #'   `fit$samples` from [MA_NB_tri()].
 #' @param data A data frame containing study-level data and display labels.
 #'   Must have one row per study in the same order as the fitted model.
+#' @param tp Column of true positives (unquoted name or string).
+#' @param tn Column of true negatives (unquoted name or string).
+#' @param n_event Column of total events per study.
+#' @param n_nonevent Column of total non-events per study.
 #' @param label_cols Character vector of column names in `data` to display
 #'   as table columns in the plot.
 #' @param study_label_col Optional column name in `data` that receives the
@@ -137,6 +141,10 @@
 plot_forest <- function(
     samples,
     data,
+    tp = NULL,
+    tn = NULL,
+    n_event = NULL,
+    n_nonevent = NULL,
     label_cols = NULL,
     study_label_col = NULL,
     metric = c("NB", "RU", "sens", "spec"),
@@ -162,6 +170,26 @@ plot_forest <- function(
   }
   if (missing(data) || is.null(data) || !is.data.frame(data)) {
     stop("`data` must be provided as a data.frame for study labels.", call. = FALSE)
+  }
+
+  count_cols <- NULL
+
+  if (!rlang::quo_is_null(rlang::enquo(tp)) ||
+      !rlang::quo_is_null(rlang::enquo(tn)) ||
+      !rlang::quo_is_null(rlang::enquo(n_event)) ||
+      !rlang::quo_is_null(rlang::enquo(n_nonevent))) {
+
+    tp_col         <- resolve_col(rlang::enquo(tp), data, "tp")
+    tn_col         <- resolve_col(rlang::enquo(tn), data, "tn")
+    n_event_col    <- resolve_col(rlang::enquo(n_event), data, "n_event")
+    n_nonevent_col <- resolve_col(rlang::enquo(n_nonevent), data, "n_nonevent")
+
+    count_cols <- list(
+      tp = tp_col,
+      tn = tn_col,
+      n_event = n_event_col,
+      n_nonevent = n_nonevent_col
+    )
   }
 
   # Decide which families to summarize based on the metric we are plotting
@@ -271,6 +299,7 @@ plot_forest <- function(
     metric = metric,
     per = per,
     data = data,
+    count_cols = count_cols,
     center = center,
     t = t,
     reported_est_col = reported_est_col,

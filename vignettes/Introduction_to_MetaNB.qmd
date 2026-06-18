@@ -422,7 +422,8 @@ For additional arguments that can be used to customize the forest plot, please r
 #| fig-height: 10
 plot_forest(
   fit_voi$samples,
-  data = data_ADNEXCA125,
+  data = data_ADNEXCA125 %>%
+    mutate(Prev = paste0(round(Prev * 100), "%")),
   label_cols = c("Publication", "Country", "N", "Prev"),
   study_label_col = "Publication",
   metric = "NB",

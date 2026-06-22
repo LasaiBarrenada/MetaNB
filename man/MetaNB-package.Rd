@@ -13,6 +13,7 @@ Performs Bayesian trivariate random-effects meta-analysis of prevalence, sensiti
 
 Authors:
 \itemize{
+  \item Junfeng Wang \email{wangjunfeng7@gmail.com} (\href{https://orcid.org/0000-0001-5157-5355}{ORCID})
   \item Kim (Zhipei) Wang \email{wzpskye@gmail.com} (\href{https://orcid.org/0009-0002-9839-9138}{ORCID})
   \item Laure Wynants \email{laure.wynants@maastrichtuniversity.nl} (\href{https://orcid.org/0000-0002-3037-122X}{ORCID})
 }

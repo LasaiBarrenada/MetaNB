@@ -1,5 +1,10 @@
 # MetaNB
 
+<!-- badges: start -->
+[![R-CMD-check](https://github.com/LasaiBarrenada/MetaNB/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/LasaiBarrenada/MetaNB/actions/workflows/R-CMD-check.yaml)
+<!-- badges: end -->
+
+
 MetaNB is an R package for Bayesian trivariate random-effects meta-analysis of prevalence, sensitivity, and specificity to indirectly synthesize net benefit across validation settings. The package also provides value-of-information (VOI) measures to quantify uncertainty around implementation decisions.
 
 ## Vignette

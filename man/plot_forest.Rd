@@ -7,6 +7,10 @@
 plot_forest(
   samples,
   data,
+  tp = NULL,
+  tn = NULL,
+  n_event = NULL,
+  n_nonevent = NULL,
   label_cols = NULL,
   study_label_col = NULL,
   metric = c("NB", "RU", "sens", "spec"),
@@ -30,6 +34,14 @@ plot_forest(
 
 \item{data}{A data frame containing study-level data and display labels.
 Must have one row per study in the same order as the fitted model.}
+
+\item{tp}{Column of true positives (unquoted name or string).}
+
+\item{tn}{Column of true negatives (unquoted name or string).}
+
+\item{n_event}{Column of total events per study.}
+
+\item{n_nonevent}{Column of total non-events per study.}
 
 \item{label_cols}{Character vector of column names in \code{data} to display
 as table columns in the plot.}
@@ -143,6 +155,8 @@ plot_forest(
 plot_forest(
   samples   = fit$samples,
   data      = data,
+  tp        = tp,
+  tn        = tn,
   label_cols = c("Publication", "Country"),
   metric    = "sens",
   file_png  = "forest_sens.png"

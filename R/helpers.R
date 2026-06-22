@@ -72,7 +72,8 @@ get_samples <- function(x) {
     label_cols = NULL,
     targets = c("NB", "probuseful"),
     targets_per_study = c("NB"),
-    return_known = FALSE
+    return_known = FALSE,
+    count_cols = NULL
 ) {
   # 1. Extract posterior summaries from the fitted samples
   # 2. Map user-facing metric names (e.g. NB, RU, sens) to JAGS node names
@@ -236,17 +237,13 @@ get_samples <- function(x) {
           }
 
           # add observed rates for sens / spec in study_info
-          if (tar %in% c("sens", "spec")) {
-
-            # compute observed rates if the needed columns exist
-            has_needed <- all(c("tp", "tn", "n_event", "n_nonevent") %in% names(data))
-
-            if (has_needed) {
-              if (tar == "sens") {
-                study_info$Observed <- with(data, tp / n_event)
-              } else {
-                study_info$Observed <- with(data, tn / n_nonevent)
-              }
+          if (tar %in% c("sens", "spec") && !is.null(count_cols)) {
+            if (tar == "sens") {
+              study_info$Observed <-
+                data[[count_cols$tp]] / data[[count_cols$n_event]]
+            } else {
+              study_info$Observed <-
+                data[[count_cols$tn]] / data[[count_cols$n_nonevent]]
             }
           }
 
@@ -549,13 +546,12 @@ build_per_study_display <- function(
     metric,
     per,
     data,
-    center = c("Mean", "Median"),
+    count_cols = NULL,
+    center = c("Median", "Mean"),
     t = NULL,
-
     reported_est_col = NULL,
     reported_low_col = NULL,
     reported_high_col = NULL,
-
     interval_fallback = c("none", "frequentist", "model")
 ) {
   center <- match.arg(center)
@@ -588,8 +584,12 @@ build_per_study_display <- function(
 
   # observed fallback for sens/spec
   if (metric %in% c("sens", "spec") &&
-      all(c("tp", "tn", "n_event", "n_nonevent") %in% names(data))) {
-    obs_est <- if (metric == "sens") data$tp / data$n_event else data$tn / data$n_nonevent
+      !is.null(count_cols)) {
+    obs_est <- if (metric == "sens") {
+      data[[count_cols$tp]] / data[[count_cols$n_event]]
+    } else {
+      data[[count_cols$tn]] / data[[count_cols$n_nonevent]]
+    }
     use_obs <- point_source != "reported" & !is.na(obs_est)
 
     display_est[use_obs] <- obs_est[use_obs]
@@ -597,18 +597,17 @@ build_per_study_display <- function(
   }
 
   # observed fallback for NB
-  if (metric == "NB" &&
-      all(c("tp", "tn", "n_event", "n_nonevent") %in% names(data))) {
+  if (metric == "NB" && !is.null(count_cols)) {
     if (is.null(t)) {
       stop("`t` must be supplied when building per-study NB from observed study data.",
            call. = FALSE)
     }
 
     nb_obs <- compute_nb_ci_delta(
-      tp = data$tp,
-      tn = data$tn,
-      n_event = data$n_event,
-      n_nonevent = data$n_nonevent,
+      tp = data[[count_cols$tp]],
+      tn = data[[count_cols$tn]],
+      n_event = data[[count_cols$n_event]],
+      n_nonevent = data[[count_cols$n_nonevent]],
       t = t
     )
 
@@ -651,12 +650,12 @@ build_per_study_display <- function(
 
     # sens/spec frequentist fallback via mada
     if (metric %in% c("sens", "spec") && interval_fallback == "frequentist") {
-      if (all(c("tp", "tn", "n_event", "n_nonevent") %in% names(data))) {
+      if (!is.null(count_cols)) {
         ci <- compute_sens_spec_ci_mada(
-          tp = data$tp,
-          tn = data$tn,
-          n_event = data$n_event,
-          n_nonevent = data$n_nonevent
+          tp = data[[count_cols$tp]],
+          tn = data[[count_cols$tn]],
+          n_event = data[[count_cols$n_event]],
+          n_nonevent = data[[count_cols$n_nonevent]]
         )
 
         if (metric == "sens") {
@@ -678,12 +677,12 @@ build_per_study_display <- function(
              call. = FALSE)
       }
 
-      if (all(c("tp", "tn", "n_event", "n_nonevent") %in% names(data))) {
+      if (!is.null(count_cols)) {
         nb_ci <- compute_nb_ci_delta(
-          tp = data$tp,
-          tn = data$tn,
-          n_event = data$n_event,
-          n_nonevent = data$n_nonevent,
+          tp = data[[count_cols$tp]],
+          tn = data[[count_cols$tn]],
+          n_event = data[[count_cols$n_event]],
+          n_nonevent = data[[count_cols$n_nonevent]],
           t = t
         )
 

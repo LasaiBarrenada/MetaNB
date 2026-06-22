@@ -11,7 +11,7 @@ MetaNB is an R package for Bayesian trivariate random-effects meta-analysis of p
 
 A worked introduction to the package is available here:
 
-https://zhipeiwang.github.io/MetaNB/Introduction_to_MetaNB.html
+https://lasaibarrenada.github.io/MetaNB/articles/Introduction_to_MetaNB.html
 
 The vignette demonstrates a typical workflow, including:
 
@@ -24,7 +24,7 @@ The vignette demonstrates a typical workflow, including:
 ## Installation
 
 ```r
-remotes::install_github("zhipeiwang/MetaNB")
+remotes::install_github("lasaibarrenada/MetaNB")
 ```
 
 ## Main functionality

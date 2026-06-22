@@ -12,4 +12,5 @@ navbar:
       href: articles/index.html
   right:
     - icon: fa-github
-      href: https://github.com/lasaibarrenada.github.io/MetaNB
+      href: https://github.com/lasaibarrenada/MetaNB
+      aria-label: "GitHub"

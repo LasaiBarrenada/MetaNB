@@ -1,4 +1,15 @@
-url: ~
+url: https://lasaibarrenada.github.io/MetaNB/
 template:
   bootstrap: 5
 
+navbar:
+  left:
+    - text: "Home"
+      href: index.html
+    - text: "Reference"
+      href: reference/index.html
+    - text: "Articles"
+      href: articles/index.html
+  right:
+    - icon: fa-github
+      href: https://github.com/lasaibarrenada.github.io/MetaNB
